@@ -10,20 +10,20 @@ import (
 	"net/http"
 )
 
-type HttpServer struct {
+type UserController struct {
 	service *services.UserService
 }
 
-func NewHttpServer(service *services.UserService) *HttpServer {
+func NewUserController(service *services.UserService) *UserController {
 	if service == nil {
 		panic("service must not be nil")
 	}
-	return &HttpServer{
+	return &UserController{
 		service: service,
 	}
 }
 
-func (s *HttpServer) GetMe(c echo.Context) error {
+func (s *UserController) GetMe(c echo.Context) error {
 	subjectUUID, err := auth.ExtractOidcSub(c)
 	if err != nil {
 		return err
@@ -38,7 +38,7 @@ func (s *HttpServer) GetMe(c echo.Context) error {
 	return c.JSON(http.StatusOK, UserToResponse(user))
 }
 
-func (s *HttpServer) GetUserByID(c echo.Context) error {
+func (s *UserController) GetUserByID(c echo.Context) error {
 	id, err := dto.ParseUserID(c.Param("id"))
 	if err != nil {
 		return err
@@ -53,7 +53,7 @@ func (s *HttpServer) GetUserByID(c echo.Context) error {
 	return c.JSON(http.StatusOK, UserToResponse(user))
 }
 
-func (s *HttpServer) CreateUser(c echo.Context) error {
+func (s *UserController) CreateUser(c echo.Context) error {
 	subjectUUID, err := auth.ExtractOidcSub(c)
 	if err != nil {
 		return err

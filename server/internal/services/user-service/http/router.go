@@ -1,12 +1,11 @@
-package config
+package http
 
 import (
 	"github.com/MKKL1/schematic-app/server/internal/pkg/auth"
-	"github.com/MKKL1/schematic-app/server/internal/services/user-service/http"
 	"github.com/labstack/echo/v4"
 )
 
-func ConfigRoutes(e *echo.Echo, server *http.HttpServer) {
+func RegisterRoutes(e *echo.Echo, server *UserController) {
 	authMiddleware := auth.GetAuthMiddleware()
 
 	apiGroup := e.Group("/api")

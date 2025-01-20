@@ -8,6 +8,7 @@ require (
 	github.com/labstack/echo-jwt/v4 v4.3.0
 	github.com/labstack/echo/v4 v4.13.3
 	github.com/lestrrat-go/jwx v1.2.30
+	github.com/rs/zerolog v1.33.0
 )
 
 require (

@@ -1,6 +1,6 @@
 go 1.22
 
 use (
-	./services/user_service
+	./services/user-service
 	./pkg
 )
