@@ -1,4 +1,4 @@
-package services
+package domainErr
 
 import appError "github.com/MKKL1/schematic-app/server/internal/pkg/error"
 

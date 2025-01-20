@@ -5,9 +5,6 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/pkg/http/middlewares"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/http"
-	"github.com/MKKL1/schematic-app/server/internal/services/user-service/postgres"
-	"github.com/MKKL1/schematic-app/server/internal/services/user-service/postgres/db"
-	"github.com/MKKL1/schematic-app/server/internal/services/user-service/services"
 	"os"
 	"os/signal"
 	"time"
@@ -29,22 +26,8 @@ func main() {
 
 		e.HTTPErrorHandler = middlewares.HTTPErrorHandler(http.MapAppError)
 
-		dbPool, err := server.NewPostgreSQL(ctx, &server.PostgresConfig{
-			Port:     "5432",
-			Host:     "localhost",
-			Username: "root",
-			Password: "root",
-			Database: "sh_user",
-		})
-		if err != nil {
-			panic(err)
-		}
-
-		queries := db.New(dbPool)
-
-		userRepo := postgres.NewUserPostgresRepository(queries)
-		userService := services.NewUserService(userRepo)
-		userController := http.NewUserController(userService)
+		application := NewApplication(ctx)
+		userController := http.NewUserController(application)
 		http.RegisterRoutes(e, userController)
 	}()
 

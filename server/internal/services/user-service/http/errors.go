@@ -1,10 +1,9 @@
 package http
 
 import (
-	"errors"
 	appErr "github.com/MKKL1/schematic-app/server/internal/pkg/error"
 	httpErr "github.com/MKKL1/schematic-app/server/internal/pkg/http"
-	"github.com/MKKL1/schematic-app/server/internal/services/user-service/services"
+	error2 "github.com/MKKL1/schematic-app/server/internal/services/user-service/domainErr"
 	"net/http"
 )
 
@@ -14,21 +13,21 @@ var (
 	UserOidcConflictError = httpErr.NewErrorResponse("USER_ALREADY_REGISTERED", http.StatusForbidden, "User is already registered")
 )
 
-func MapError(err error) error {
-	var e *appErr.Error
-	if errors.As(err, &e) {
-		return MapAppError(*e)
-	}
-	return err
-}
+//func MapError(err error) error {
+//	var e *appErr.Error
+//	if errors.As(err, &e) {
+//		return MapAppError(*e)
+//	}
+//	return err
+//}
 
 func MapAppError(err appErr.Error) error {
 	switch err.Code() {
-	case services.ErrorCodeUserNotFound:
+	case error2.ErrorCodeUserNotFound:
 		return UserNotFoundError
-	case services.ErrorCodeNameConflict:
+	case error2.ErrorCodeNameConflict:
 		return UserNameConflictError
-	case services.ErrorCodeSubConflict:
+	case error2.ErrorCodeSubConflict:
 		return UserOidcConflictError
 	}
 	//TODO log error

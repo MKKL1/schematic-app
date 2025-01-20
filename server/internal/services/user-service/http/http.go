@@ -4,23 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/auth"
+	"github.com/MKKL1/schematic-app/server/internal/services/user-service/app"
+	"github.com/MKKL1/schematic-app/server/internal/services/user-service/app/command"
+	"github.com/MKKL1/schematic-app/server/internal/services/user-service/app/query"
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/dto"
-	"github.com/MKKL1/schematic-app/server/internal/services/user-service/services"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
 
 type UserController struct {
-	service *services.UserService
+	application app.Application
 }
 
-func NewUserController(service *services.UserService) *UserController {
-	if service == nil {
-		panic("service must not be nil")
-	}
-	return &UserController{
-		service: service,
-	}
+func NewUserController(application app.Application) *UserController {
+	return &UserController{application}
 }
 
 func (s *UserController) GetMe(c echo.Context) error {
@@ -30,7 +27,9 @@ func (s *UserController) GetMe(c echo.Context) error {
 	}
 
 	ctx := context.Background()
-	user, err := s.service.GetUserByOidcSub(ctx, subjectUUID)
+
+	params := query.GetUserBySubParams{Sub: subjectUUID}
+	user, err := s.application.Queries.GetUserBySub.Handle(ctx, params)
 	if err != nil {
 		return err
 	}
@@ -45,7 +44,8 @@ func (s *UserController) GetUserByID(c echo.Context) error {
 	}
 
 	ctx := context.Background()
-	user, err := s.service.GetUserById(ctx, id)
+	params := query.GetUserByIdParams{Id: id}
+	user, err := s.application.Queries.GetUserById.Handle(ctx, params)
 	if err != nil {
 		return err
 	}
@@ -67,10 +67,14 @@ func (s *UserController) CreateUser(c echo.Context) error {
 		return err
 	}
 
-	createdUser, err := s.service.CreateUser(ctx, requestData.Name, subjectUUID)
+	params := command.CreateUserParams{
+		Username: requestData.Name,
+		Sub:      subjectUUID,
+	}
+	err = s.application.Commands.CreateUser.Handle(ctx, params)
 	if err != nil {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, createdUser)
+	return c.NoContent(http.StatusCreated)
 }
