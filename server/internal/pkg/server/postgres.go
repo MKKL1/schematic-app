@@ -15,7 +15,7 @@ type PostgresConfig struct {
 	Database string `mapstructure:"database"`
 }
 
-func NewPostgreSQL(ctx context.Context, conf *PostgresConfig) (*pgxpool.Pool, error) {
+func NewPostgreSQLClient(ctx context.Context, conf *PostgresConfig) (*pgxpool.Pool, error) {
 	connString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s", conf.Username, conf.Password, conf.Host, conf.Port, conf.Database)
 	dbPool, err := pgxpool.New(ctx, connString)
 

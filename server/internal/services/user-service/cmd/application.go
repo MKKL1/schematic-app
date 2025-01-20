@@ -12,7 +12,7 @@ import (
 )
 
 func NewApplication(ctx context.Context) app.Application {
-	dbPool, err := server.NewPostgreSQL(ctx, &server.PostgresConfig{
+	dbPool, err := server.NewPostgreSQLClient(ctx, &server.PostgresConfig{
 		Port:     "5432",
 		Host:     "localhost",
 		Username: "root",

@@ -1,7 +1,7 @@
 package http
 
 import (
-	"github.com/MKKL1/schematic-app/server/internal/services/user-service/dto"
+	"github.com/MKKL1/schematic-app/server/internal/services/user-service/domain/user"
 )
 
 type UserResponse struct {
@@ -9,7 +9,7 @@ type UserResponse struct {
 	Name string `json:"name"`
 }
 
-func UserToResponse(user dto.User) UserResponse {
+func UserToResponse(user user.User) UserResponse {
 	return UserResponse{
 		ID:   user.ID.String(),
 		Name: user.Name,

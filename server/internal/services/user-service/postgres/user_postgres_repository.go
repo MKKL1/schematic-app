@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	errorDB "github.com/MKKL1/schematic-app/server/internal/pkg/error/db"
-	"github.com/MKKL1/schematic-app/server/internal/services/user-service/dto"
+	"github.com/MKKL1/schematic-app/server/internal/services/user-service/domain/user"
 	db2 "github.com/MKKL1/schematic-app/server/internal/services/user-service/postgres/db"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -12,13 +12,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"strings"
 )
-
-type UserRepository interface {
-	FindById(ctx context.Context, id dto.UserID) (db2.User, error)
-	FindByOidcSub(ctx context.Context, oidcSub uuid.UUID) (db2.User, error)
-	FindByName(ctx context.Context, name string) (db2.User, error)
-	CreateUser(ctx context.Context, user dto.User) (int64, error)
-}
 
 type UserPostgresRepository struct {
 	queries *db2.Queries
@@ -31,7 +24,7 @@ func NewUserPostgresRepository(queries *db2.Queries) *UserPostgresRepository {
 	return &UserPostgresRepository{queries}
 }
 
-func (ur *UserPostgresRepository) FindById(ctx context.Context, id dto.UserID) (db2.User, error) {
+func (ur *UserPostgresRepository) FindById(ctx context.Context, id user.UserID) (db2.User, error) {
 	out, err := ur.queries.GetUserById(ctx, int64(id))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return out, errorDB.ErrNoRows
@@ -55,7 +48,7 @@ func (ur *UserPostgresRepository) FindByName(ctx context.Context, name string) (
 	return out, err
 }
 
-func (ur *UserPostgresRepository) CreateUser(ctx context.Context, user dto.User) (int64, error) {
+func (ur *UserPostgresRepository) CreateUser(ctx context.Context, user user.User) (int64, error) {
 	arr := []db2.CreateUserParams{
 		{
 			ID:      int64(user.ID),

@@ -3,7 +3,7 @@ package http
 import (
 	appErr "github.com/MKKL1/schematic-app/server/internal/pkg/error"
 	httpErr "github.com/MKKL1/schematic-app/server/internal/pkg/http"
-	error2 "github.com/MKKL1/schematic-app/server/internal/services/user-service/domainErr"
+	error2 "github.com/MKKL1/schematic-app/server/internal/services/user-service/domain/user"
 	"net/http"
 )
 

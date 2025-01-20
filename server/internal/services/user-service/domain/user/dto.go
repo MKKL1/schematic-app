@@ -1,4 +1,4 @@
-package dto
+package user
 
 import (
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/postgres/db"

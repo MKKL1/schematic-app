@@ -7,7 +7,7 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/app"
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/app/command"
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/app/query"
-	"github.com/MKKL1/schematic-app/server/internal/services/user-service/dto"
+	"github.com/MKKL1/schematic-app/server/internal/services/user-service/domain/user"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
@@ -38,7 +38,7 @@ func (s *UserController) GetMe(c echo.Context) error {
 }
 
 func (s *UserController) GetUserByID(c echo.Context) error {
-	id, err := dto.ParseUserID(c.Param("id"))
+	id, err := user.ParseUserID(c.Param("id"))
 	if err != nil {
 		return err
 	}

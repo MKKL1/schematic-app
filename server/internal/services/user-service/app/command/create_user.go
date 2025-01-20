@@ -6,9 +6,7 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
 	appErr "github.com/MKKL1/schematic-app/server/internal/pkg/error"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/error/db"
-	"github.com/MKKL1/schematic-app/server/internal/services/user-service/domainErr"
-	"github.com/MKKL1/schematic-app/server/internal/services/user-service/dto"
-	"github.com/MKKL1/schematic-app/server/internal/services/user-service/postgres"
+	"github.com/MKKL1/schematic-app/server/internal/services/user-service/domain/user"
 	"github.com/bwmarrin/snowflake"
 	"github.com/google/uuid"
 )
@@ -21,30 +19,30 @@ type CreateUserParams struct {
 type CreateUserHandler decorator.CommandHandler[CreateUserParams]
 
 type createUserHandler struct {
-	repo   postgres.UserRepository
+	repo   user.Repository
 	idNode *snowflake.Node
 }
 
-func NewCreateUserHandler(repo postgres.UserRepository, idNode *snowflake.Node) CreateUserHandler {
+func NewCreateUserHandler(repo user.Repository, idNode *snowflake.Node) CreateUserHandler {
 	return createUserHandler{repo, idNode}
 }
 
 func (h createUserHandler) Handle(ctx context.Context, params CreateUserParams) error {
-	user := dto.User{
-		ID:      dto.UserID(h.idNode.Generate().Int64()),
+	newUser := user.User{
+		ID:      user.UserID(h.idNode.Generate().Int64()),
 		Name:    params.Username,
 		OidcSub: params.Sub,
 	}
 
-	_, err := h.repo.CreateUser(ctx, user)
+	_, err := h.repo.CreateUser(ctx, newUser)
 	if err != nil {
 		var e *db.UniqueConstraintError
 		if errors.As(err, &e) {
 			switch e.Field {
 			case "OidcSub":
-				return appErr.WrapErrorf(err, domainErr.ErrorCodeSubConflict, "repo.CreateUser")
+				return appErr.WrapErrorf(err, user.ErrorCodeSubConflict, "repo.CreateUser")
 			case "Name":
-				return appErr.WrapErrorf(err, domainErr.ErrorCodeNameConflict, "repo.CreateUser")
+				return appErr.WrapErrorf(err, user.ErrorCodeNameConflict, "repo.CreateUser")
 			}
 		}
 		return appErr.WrapErrorf(err, appErr.ErrorCodeUnknown, "repo.CreateUser")
