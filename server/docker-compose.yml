@@ -20,6 +20,19 @@ services:
     ports:
       - "8082:8080"
     command: start-dev
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis:/root/redis
+    environment:
+#      - REDIS_PASSWORD=password
+      - REDIS_PORT=6379
+      - REDIS_DATABASES=16
+
 volumes:
   postgres:
   keycloak:
+  redis:
