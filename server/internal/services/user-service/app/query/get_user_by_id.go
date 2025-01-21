@@ -24,7 +24,7 @@ func NewGetUserByIdHandler(repo user.Repository) GetUserByIdHandler {
 }
 
 func (h getUserByIdHandler) Handle(ctx context.Context, params GetUserByIdParams) (user.User, error) {
-	userModel, err := h.repo.FindById(ctx, params.Id)
+	userModel, err := h.repo.FindById(ctx, params.Id.Unwrap())
 	if err != nil {
 		if errors.Is(err, db.ErrNoRows) {
 			return user.User{}, appErr.WrapErrorf(err, user.ErrorCodeUserNotFound, "repo.FindById")
@@ -32,9 +32,5 @@ func (h getUserByIdHandler) Handle(ctx context.Context, params GetUserByIdParams
 		return user.User{}, appErr.WrapErrorf(err, appErr.ErrorCodeUnknown, "repo.FindById")
 	}
 
-	model, err := user.ToDTO(userModel)
-	if err != nil {
-		return user.User{}, appErr.WrapErrorf(err, appErr.ErrorCodeUnknown, "User.ToDTO")
-	}
-	return model, nil
+	return user.ToDTO(userModel), nil
 }

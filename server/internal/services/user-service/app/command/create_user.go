@@ -28,8 +28,8 @@ func NewCreateUserHandler(repo user.Repository, idNode *snowflake.Node) CreateUs
 }
 
 func (h createUserHandler) Handle(ctx context.Context, params CreateUserParams) error {
-	newUser := user.User{
-		ID:      user.UserID(h.idNode.Generate().Int64()),
+	newUser := user.Model{
+		ID:      h.idNode.Generate().Int64(),
 		Name:    params.Username,
 		OidcSub: params.Sub,
 	}

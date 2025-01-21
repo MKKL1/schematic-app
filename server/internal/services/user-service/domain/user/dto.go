@@ -1,7 +1,6 @@
 package user
 
 import (
-	"github.com/MKKL1/schematic-app/server/internal/services/user-service/postgres/db"
 	"github.com/google/uuid"
 	"strconv"
 )
@@ -13,6 +12,10 @@ type User struct {
 }
 
 type UserID int64
+
+func (u UserID) Unwrap() int64 {
+	return int64(u)
+}
 
 func (u UserID) String() string {
 	return strconv.FormatInt(int64(u), 10)
@@ -26,15 +29,10 @@ func ParseUserID(str string) (UserID, error) {
 	return UserID(id), nil
 }
 
-func ToDTO(user db.User) (User, error) {
-	oidcSub, err := uuid.FromBytes(user.OidcSub.Bytes[:])
-	if err != nil {
-		return User{}, err
-	}
-
+func ToDTO(user Model) User {
 	return User{
 		ID:      UserID(user.ID),
 		Name:    user.Name,
-		OidcSub: oidcSub,
-	}, nil
+		OidcSub: user.OidcSub,
+	}
 }

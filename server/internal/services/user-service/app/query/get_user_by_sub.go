@@ -33,9 +33,5 @@ func (h getUserBySubHandler) Handle(ctx context.Context, params GetUserBySubPara
 		return user.User{}, appErr.WrapErrorf(err, appErr.ErrorCodeUnknown, "repo.FindByOidcSub")
 	}
 
-	model, err := user.ToDTO(userModel)
-	if err != nil {
-		return user.User{}, appErr.WrapErrorf(err, appErr.ErrorCodeUnknown, "User.ToDTO")
-	}
-	return model, nil
+	return user.ToDTO(userModel), nil
 }
