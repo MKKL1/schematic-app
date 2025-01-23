@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/MKKL1/schematic-app/server/internal/pkg/genproto/user";
+
+service UserService {
+  rpc GetUserById(GetUserByIdRequest) returns (User) {}
+  rpc GetUserByName(GetUserByNameRequest) returns (User) {}
+  rpc GetUserBySub(GetUserBySubRequest) returns (User) {}
+}
+
+message GetUserByIdRequest {
+  int64 id = 1;
+}
+
+message GetUserByNameRequest {
+  string name = 1;
+}
+
+message GetUserBySubRequest {
+  bytes oidc_sub = 1;
+}
+
+message User {
+  int64 id = 1;
+  string name = 2;
+  bytes oidc_sub = 3;
+}

@@ -1,4 +1,4 @@
-package http
+package ports
 
 import (
 	"context"
@@ -8,9 +8,20 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/app/command"
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/app/query"
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/domain/user"
+	userhttp "github.com/MKKL1/schematic-app/server/internal/services/user-service/http"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
+
+func RegisterRoutes(e *echo.Echo, server *UserController) {
+	authMiddleware := auth.GetAuthMiddleware()
+
+	apiGroup := e.Group("/api")
+	v1Group := apiGroup.Group("/v1/users")
+	v1Group.GET("/me", server.GetMe, authMiddleware)
+	v1Group.GET("/:id", server.GetUserByID)
+	v1Group.POST("/", server.CreateUser, authMiddleware)
+}
 
 type UserController struct {
 	application app.Application
@@ -29,12 +40,12 @@ func (s *UserController) GetMe(c echo.Context) error {
 	ctx := context.Background()
 
 	params := query.GetUserBySubParams{Sub: subjectUUID}
-	user, err := s.application.Queries.GetUserBySub.Handle(ctx, params)
+	userDto, err := s.application.Queries.GetUserBySub.Handle(ctx, params)
 	if err != nil {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, UserToResponse(user))
+	return c.JSON(http.StatusOK, userhttp.UserToResponse(userDto))
 }
 
 func (s *UserController) GetUserByID(c echo.Context) error {
@@ -45,12 +56,12 @@ func (s *UserController) GetUserByID(c echo.Context) error {
 
 	ctx := context.Background()
 	params := query.GetUserByIdParams{Id: id}
-	user, err := s.application.Queries.GetUserById.Handle(ctx, params)
+	userDto, err := s.application.Queries.GetUserById.Handle(ctx, params)
 	if err != nil {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, UserToResponse(user))
+	return c.JSON(http.StatusOK, userhttp.UserToResponse(userDto))
 }
 
 func (s *UserController) CreateUser(c echo.Context) error {
@@ -61,7 +72,7 @@ func (s *UserController) CreateUser(c echo.Context) error {
 
 	ctx := context.Background()
 
-	requestData := UserCreateRequest{}
+	requestData := userhttp.UserCreateRequest{}
 	err = json.NewDecoder(c.Request().Body).Decode(&requestData)
 	if err != nil {
 		return err

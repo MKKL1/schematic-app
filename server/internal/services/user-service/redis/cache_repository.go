@@ -12,6 +12,11 @@ import (
 	"time"
 )
 
+// I don't like how ristretto is used without any abstraction
+// It would be better to have some kind of "class" that handles mapping between given values and id
+// This solution is very hard to extend
+// It also doesn't share data between services using redis
+
 type CacheRepository struct {
 	baseRepo    user.Repository
 	cacheClient rueidisaside.CacheAsideClient

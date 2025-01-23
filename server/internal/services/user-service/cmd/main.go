@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/genproto"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/http/middlewares"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/http"
+	"github.com/MKKL1/schematic-app/server/internal/services/user-service/ports"
+	"google.golang.org/grpc"
 	"os"
 	"os/signal"
 	"time"
@@ -27,8 +30,14 @@ func main() {
 		e.HTTPErrorHandler = middlewares.HTTPErrorHandler(http.MapAppError)
 
 		application := NewApplication(ctx)
-		userController := http.NewUserController(application)
-		http.RegisterRoutes(e, userController)
+
+		server.RunGRPCServer(":8001", func(server *grpc.Server) {
+			srv := ports.NewGrpcServer(application)
+			genproto.RegisterUserServiceServer(server, srv)
+		})
+
+		userController := ports.NewUserController(application)
+		ports.RegisterRoutes(e, userController)
 	}()
 
 	<-ctx.Done()
