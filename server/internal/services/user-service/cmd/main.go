@@ -31,7 +31,7 @@ func main() {
 
 		application := NewApplication(ctx)
 
-		server.RunGRPCServer(":8001", func(server *grpc.Server) {
+		server.RunGRPCServer(ctx, ":8001", func(server *grpc.Server) {
 			srv := ports.NewGrpcServer(application)
 			genproto.RegisterUserServiceServer(server, srv)
 		})

@@ -30,8 +30,8 @@ func InterceptorLogger(l zerolog.Logger) logging.Logger {
 	})
 }
 
-func RunGRPCServer(addr string, registerServer func(server *grpc.Server)) {
-	logger := zerolog.New(os.Stderr)
+func RunGRPCServer(ctx context.Context, addr string, registerServer func(server *grpc.Server)) {
+	logger := zerolog.New(os.Stdout).With().Logger()
 	opts := []logging.Option{
 		logging.WithLogOnEvents(logging.StartCall, logging.FinishCall),
 		// Add any other option (check functions starting with logging.With).
@@ -47,10 +47,24 @@ func RunGRPCServer(addr string, registerServer func(server *grpc.Server)) {
 	)
 	registerServer(grpcServer)
 
-	listen, err := net.Listen("tcp", addr)
-	if err != nil {
-		log.Err(err)
-	}
-	log.Info().Str("addr", addr).Msg("starting server")
-	log.Fatal().Err(grpcServer.Serve(listen))
+	go func() {
+		listen, err := net.Listen("tcp", addr)
+		if err != nil {
+			log.Err(err)
+		}
+		log.Info().Str("addr", addr).Msg("starting server")
+		log.Fatal().Err(grpcServer.Serve(listen))
+	}()
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				log.Info().Str("port", "8001").Msg("shutting down gRPC server")
+				grpcServer.GracefulStop()
+				log.Info().Msg("server shut down")
+				return
+			}
+		}
+	}()
 }

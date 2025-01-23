@@ -19,7 +19,7 @@ func HTTPErrorHandler(errorMapper func(err appErr.Error) error) func(err error, 
 			if ok {
 				errorResponse = mappedError
 			} else {
-				errorResponse = appHttp.NewErrorResponse("ECHO_ERROR", echoError.Code, echoError.Message.(string))
+				errorResponse = appHttp.NewErrorResponse("HTTP_ERROR", echoError.Code, echoError.Message.(string))
 			}
 		} else if errors.As(err, &serviceError) {
 			err = errorMapper(*serviceError)
