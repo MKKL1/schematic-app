@@ -45,21 +45,6 @@ func toModel(dbPost db.Post) (post.Model, error) {
 		authorId = &dbPost.AuthorKnown.Int64
 	}
 
-	//var author *post.Author
-	//if dbPost.AuthorKnown.Valid {
-	//	author = &post.Author{
-	//		IsKnown: true,
-	//		UserID:      dbPost.AuthorKnown.Int64,
-	//	}
-	//} else if dbPost.AuthorUnknown.Valid {
-	//	author = &post.Author{
-	//		IsKnown: false,
-	//		Name:    dbPost.AuthorUnknown.String,
-	//	}
-	//} else {
-	//	return post.Model{}, fmt.Errorf("author not known")
-	//}
-
 	return post.Model{
 		ID:          dbPost.ID,
 		Description: desc,

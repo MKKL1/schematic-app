@@ -63,6 +63,9 @@ func (p PostCacheRepository) FindById(ctx context.Context, id int64) (post.Model
 
 		return &postModel, nil
 	})
+	if err != nil {
+		return post.Model{}, err
+	}
 	if val == nil {
 		return post.Model{}, fmt.Errorf("post not found")
 	}

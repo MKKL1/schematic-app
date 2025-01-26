@@ -98,6 +98,9 @@ func (c CacheRepository) findById(ctx context.Context, id int64) (user.Model, er
 
 		return &userModel, nil
 	})
+	if err != nil {
+		return user.Model{}, err
+	}
 	if val == nil {
 		return user.Model{}, fmt.Errorf("user not found")
 	}
@@ -132,6 +135,9 @@ func (c CacheRepository) FindByOidcSub(ctx context.Context, oidcSub uuid.UUID) (
 		return &userModel, nil
 	})
 
+	if err != nil {
+		return user.Model{}, err
+	}
 	if val == nil {
 		return user.Model{}, fmt.Errorf("user not found")
 	}
@@ -157,6 +163,9 @@ func (c CacheRepository) FindByName(ctx context.Context, name string) (user.Mode
 		return &userModel, nil
 	})
 
+	if err != nil {
+		return user.Model{}, err
+	}
 	if val == nil {
 		return user.Model{}, fmt.Errorf("user not found")
 	}
