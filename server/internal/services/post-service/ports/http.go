@@ -3,6 +3,7 @@ package ports
 import (
 	"context"
 	"encoding/json"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/auth"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/command"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/query"
@@ -14,12 +15,12 @@ import (
 )
 
 func RegisterRoutes(e *echo.Echo, server *PostController) {
-	//authMiddleware := auth.GetAuthMiddleware()
+	authMiddleware := auth.GetAuthMiddleware()
 
 	apiGroup := e.Group("/api")
 	v1Group := apiGroup.Group("/v1/posts")
 	v1Group.GET("/:id", server.GetPost)
-	v1Group.POST("/", server.CreatePost)
+	v1Group.POST("/", server.CreatePost, authMiddleware)
 }
 
 type PostController struct {
@@ -48,10 +49,15 @@ func (pc *PostController) GetPost(c echo.Context) error {
 }
 
 func (pc *PostController) CreatePost(c echo.Context) error {
+	subjectUUID, err := auth.ExtractOidcSub(c)
+	if err != nil {
+		return err
+	}
+
 	ctx := context.Background()
 
 	requestData := posthttp.PostCreateRequest{}
-	err := json.NewDecoder(c.Request().Body).Decode(&requestData)
+	err = json.NewDecoder(c.Request().Body).Decode(&requestData)
 	if err != nil {
 		return err
 	}
@@ -62,7 +68,7 @@ func (pc *PostController) CreatePost(c echo.Context) error {
 
 	params := command.CreatePostParams{
 		PostCreateRequest: requestData,
-		Owner:             15,
+		Sub:               subjectUUID,
 	}
 
 	id, err := pc.application.Commands.CreatePost.Handle(ctx, params)

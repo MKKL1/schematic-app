@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/client"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/rueidisaside"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app"
@@ -32,7 +33,7 @@ func NewApplication(ctx context.Context) app.Application {
 
 	clientRed := server.NewRedisClient()
 	//TODO Move somewhere else
-	client, err := rueidisaside.NewClient(rueidisaside.ClientOption{
+	reuClient, err := rueidisaside.NewClient(rueidisaside.ClientOption{
 		ClientBuilder: func(option rueidis.ClientOption) (rueidis.Client, error) {
 			return clientRed, nil
 		},
@@ -40,16 +41,18 @@ func NewApplication(ctx context.Context) app.Application {
 		ClientTTL:    time.Minute,
 	})
 
-	postCacheRepo := redis.NewPostCacheRepository(postRepo, client)
+	postCacheRepo := redis.NewPostCacheRepository(postRepo, reuClient)
 
 	idNode, err := snowflake.NewNode(1)
 	if err != nil {
 		panic(err)
 	}
 
+	userService := client.NewUsersClient(ctx, ":8001")
+
 	return app.Application{
 		Commands: app.Commands{
-			CreatePost: command.NewCreatePostHandler(postCacheRepo, idNode),
+			CreatePost: command.NewCreatePostHandler(postCacheRepo, idNode, userService),
 		},
 		Queries: app.Queries{
 			GetPostById: query.NewGetPostByIdHandler(postCacheRepo),
