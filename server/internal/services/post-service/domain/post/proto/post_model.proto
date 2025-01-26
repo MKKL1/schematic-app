@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package data;
+
+option go_package = "github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post/proto";
+
+message PostModel {
+  int64 id = 1;
+  optional string desc = 2;
+  int64 owner = 3;
+  optional string aName = 4;
+  optional int64 aId = 5;
+}
