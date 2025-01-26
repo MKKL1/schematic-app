@@ -1,6 +1,6 @@
 module github.com/MKKL1/schematic-app/server/internal/services/user-service
 
-go 1.22
+go 1.23
 
 require (
 	github.com/MKKL1/schematic-app/server/internal/pkg v0.0.0-20250122194239-37ebf631c13f
