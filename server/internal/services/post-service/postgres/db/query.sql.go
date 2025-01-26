@@ -7,10 +7,21 @@ package db
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type CreatePostParams struct {
+	ID            int64
+	Name          string
+	Desc          pgtype.Text
+	Owner         int64
+	AuthorKnown   pgtype.Int8
+	AuthorUnknown pgtype.Text
+}
+
 const getPostById = `-- name: GetPostById :one
-SELECT id, "desc", owner, author_known, author_unknown FROM post
+SELECT id, name, "desc", owner, author_known, author_unknown FROM post
 WHERE id = $1
 `
 
@@ -19,6 +30,7 @@ func (q *Queries) GetPostById(ctx context.Context, id int64) (Post, error) {
 	var i Post
 	err := row.Scan(
 		&i.ID,
+		&i.Name,
 		&i.Desc,
 		&i.Owner,
 		&i.AuthorKnown,

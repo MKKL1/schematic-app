@@ -1,6 +1,9 @@
 package app
 
-import "github.com/MKKL1/schematic-app/server/internal/services/post-service/app/query"
+import (
+	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/command"
+	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/query"
+)
 
 type Application struct {
 	Commands Commands
@@ -8,6 +11,7 @@ type Application struct {
 }
 
 type Commands struct {
+	CreatePost command.CreatePostHandler
 }
 
 type Queries struct {

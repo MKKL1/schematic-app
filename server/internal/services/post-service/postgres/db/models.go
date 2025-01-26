@@ -16,6 +16,7 @@ type GalleryImage struct {
 
 type Post struct {
 	ID            int64
+	Name          string
 	Desc          pgtype.Text
 	Owner         int64
 	AuthorKnown   pgtype.Int8

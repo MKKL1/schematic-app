@@ -2,6 +2,7 @@ package post
 
 type Post struct {
 	ID          int64
+	Name        string
 	Description *string
 	Owner       int64
 	Author      *Author
@@ -31,6 +32,7 @@ func ToDTO(postModel Model) Post {
 
 	return Post{
 		ID:          postModel.ID,
+		Name:        postModel.Name,
 		Description: postModel.Description,
 		Owner:       postModel.Owner,
 		Author:      author,

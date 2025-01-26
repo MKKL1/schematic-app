@@ -7,6 +7,7 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/postgres/db"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type PostPostgresRepository struct {
@@ -30,6 +31,50 @@ func (p *PostPostgresRepository) FindById(ctx context.Context, id int64) (post.M
 	return toModel(out)
 }
 
+func (p *PostPostgresRepository) Create(ctx context.Context, model post.Model) error {
+	params := []db.CreatePostParams{
+		{
+			ID:            model.ID,
+			Name:          model.Name,
+			Desc:          toText(model.Description),
+			Owner:         model.Owner,
+			AuthorKnown:   toInt(model.AuthorID),
+			AuthorUnknown: toText(model.AuthorName),
+		},
+	}
+
+	_, err := p.queries.CreatePost(ctx, params)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func toText(str *string) pgtype.Text {
+	if str == nil {
+		return pgtype.Text{
+			Valid: false,
+		}
+	}
+	return pgtype.Text{
+		String: *str,
+		Valid:  true,
+	}
+}
+
+func toInt(val *int64) pgtype.Int8 {
+	if val == nil {
+		return pgtype.Int8{
+			Valid: false,
+		}
+	}
+	return pgtype.Int8{
+		Int64: *val,
+		Valid: true,
+	}
+}
+
 func toModel(dbPost db.Post) (post.Model, error) {
 	var desc *string = nil
 	if dbPost.Desc.Valid {
@@ -47,6 +92,7 @@ func toModel(dbPost db.Post) (post.Model, error) {
 
 	return post.Model{
 		ID:          dbPost.ID,
+		Name:        dbPost.Name,
 		Description: desc,
 		Owner:       dbPost.Owner,
 		AuthorName:  authorName,

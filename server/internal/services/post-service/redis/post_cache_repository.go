@@ -21,6 +21,7 @@ func NewPostCacheRepository(baseRepo post.Repository, cacheClient rueidisaside.C
 		func(dbPost *post.Model) (string, error) {
 			pbModel := postProto.PostModel{
 				Id:    dbPost.ID,
+				Name:  dbPost.Name,
 				Desc:  dbPost.Description,
 				Owner: dbPost.Owner,
 				AName: dbPost.AuthorName,
@@ -41,6 +42,7 @@ func NewPostCacheRepository(baseRepo post.Repository, cacheClient rueidisaside.C
 
 			postModel := &post.Model{
 				ID:          pbModel.Id,
+				Name:        pbModel.Name,
 				Description: pbModel.Desc,
 				Owner:       pbModel.Owner,
 				AuthorName:  pbModel.AName,
@@ -70,4 +72,8 @@ func (p PostCacheRepository) FindById(ctx context.Context, id int64) (post.Model
 		return post.Model{}, fmt.Errorf("post not found")
 	}
 	return *val, err
+}
+
+func (p PostCacheRepository) Create(ctx context.Context, model post.Model) error {
+	return p.baseRepo.Create(ctx, model)
 }

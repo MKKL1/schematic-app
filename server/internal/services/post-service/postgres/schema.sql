@@ -3,6 +3,7 @@ create table post
     id             bigint not null
         constraint schematic_pk
             primary key,
+    name           text not null,
     "desc"         text,
     owner          bigint not null,
     author_known   bigint,

@@ -2,9 +2,12 @@ package ports
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app"
+	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/command"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/query"
 	posthttp "github.com/MKKL1/schematic-app/server/internal/services/post-service/http"
+	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"strconv"
@@ -16,14 +19,16 @@ func RegisterRoutes(e *echo.Echo, server *PostController) {
 	apiGroup := e.Group("/api")
 	v1Group := apiGroup.Group("/v1/posts")
 	v1Group.GET("/:id", server.GetPost)
+	v1Group.POST("/", server.CreatePost)
 }
 
 type PostController struct {
 	application app.Application
+	validate    *validator.Validate
 }
 
 func NewPostController(application app.Application) *PostController {
-	return &PostController{application}
+	return &PostController{application, validator.New(validator.WithRequiredStructEnabled())}
 }
 
 func (pc *PostController) GetPost(c echo.Context) error {
@@ -40,4 +45,30 @@ func (pc *PostController) GetPost(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, posthttp.PostToResponse(postDto))
+}
+
+func (pc *PostController) CreatePost(c echo.Context) error {
+	ctx := context.Background()
+
+	requestData := posthttp.PostCreateRequest{}
+	err := json.NewDecoder(c.Request().Body).Decode(&requestData)
+	if err != nil {
+		return err
+	}
+
+	if err := pc.validate.Struct(requestData); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	params := command.CreatePostParams{
+		PostCreateRequest: requestData,
+		Owner:             15,
+	}
+
+	id, err := pc.application.Commands.CreatePost.Handle(ctx, params)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusCreated, map[string]string{"id": strconv.FormatInt(id, 10)})
 }

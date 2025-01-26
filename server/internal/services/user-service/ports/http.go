@@ -82,10 +82,10 @@ func (s *UserController) CreateUser(c echo.Context) error {
 		Username: requestData.Name,
 		Sub:      subjectUUID,
 	}
-	err = s.application.Commands.CreateUser.Handle(ctx, params)
+	id, err = s.application.Commands.CreateUser.Handle(ctx, params)
 	if err != nil {
 		return err
 	}
 
-	return c.NoContent(http.StatusCreated)
+	return c.JSON(http.StatusCreated, map[string]string{"id": id})
 }

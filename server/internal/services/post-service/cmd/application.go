@@ -5,10 +5,12 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/pkg/rueidisaside"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app"
+	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/command"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/query"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/postgres"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/postgres/db"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/redis"
+	"github.com/bwmarrin/snowflake"
 	"github.com/redis/rueidis"
 	"time"
 )
@@ -40,13 +42,15 @@ func NewApplication(ctx context.Context) app.Application {
 
 	postCacheRepo := redis.NewPostCacheRepository(postRepo, client)
 
-	//idNode, err := snowflake.NewNode(1)
-	//if err != nil {
-	//	panic(err)
-	//}
+	idNode, err := snowflake.NewNode(1)
+	if err != nil {
+		panic(err)
+	}
 
 	return app.Application{
-		Commands: app.Commands{},
+		Commands: app.Commands{
+			CreatePost: command.NewCreatePostHandler(postCacheRepo, idNode),
+		},
 		Queries: app.Queries{
 			GetPostById: query.NewGetPostByIdHandler(postCacheRepo),
 		},
