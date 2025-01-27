@@ -5,17 +5,23 @@ import (
 	"github.com/google/uuid"
 )
 
-//TODO it probably shouldn't be in domain
-
-type Model struct {
+type Entity struct {
 	ID      int64
 	Name    string
 	OidcSub uuid.UUID
 }
 
+func EntityToDTO(entity Entity) User {
+	return User{
+		ID:      ID(entity.ID),
+		Name:    entity.Name,
+		OidcSub: entity.OidcSub,
+	}
+}
+
 type Repository interface {
-	FindById(ctx context.Context, id int64) (Model, error)
-	FindByOidcSub(ctx context.Context, oidcSub uuid.UUID) (Model, error)
-	FindByName(ctx context.Context, name string) (Model, error)
-	CreateUser(ctx context.Context, user Model) (int64, error)
+	FindById(ctx context.Context, id int64) (Entity, error)
+	FindByOidcSub(ctx context.Context, oidcSub uuid.UUID) (Entity, error)
+	FindByName(ctx context.Context, name string) (Entity, error)
+	CreateUser(ctx context.Context, user Entity) (int64, error)
 }

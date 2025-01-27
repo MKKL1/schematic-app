@@ -14,7 +14,7 @@ type Author struct {
 	UserID  int64
 }
 
-func ToDTO(postModel Model) Post {
+func ToDTO(postModel Entity) Post {
 	var author *Author
 	if postModel.AuthorID == nil && postModel.AuthorName == nil {
 		author = nil

@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-type Model struct {
+type Entity struct {
 	ID          int64
 	Name        string
 	Description *string
@@ -14,6 +14,6 @@ type Model struct {
 }
 
 type Repository interface {
-	FindById(ctx context.Context, id int64) (Model, error)
-	Create(ctx context.Context, model Model) error
+	FindById(ctx context.Context, id int64) (Entity, error)
+	Create(ctx context.Context, model Entity) error
 }

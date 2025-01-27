@@ -6,7 +6,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
+
+// TODO there are way too many user structs
 
 type User struct {
 	ID      int64
@@ -31,17 +34,25 @@ func protoToDto(prUser *genproto.User) (*User, error) {
 	}, nil
 }
 
-type UserService interface {
+type UserApplication struct {
+	command UserCommandService
+	query   UserQueryService
+}
+
+type UserCommandService interface {
+}
+
+type UserQueryService interface {
 	GetUserById(ctx context.Context, id int64) (*User, error)
 	GetUserByName(ctx context.Context, name string) (*User, error)
 	GetUserBySub(ctx context.Context, sub uuid.UUID) (*User, error)
 }
 
-type UserGrpcService struct {
+type UserQueryGrpcService struct {
 	userServiceClient genproto.UserServiceClient
 }
 
-func (u UserGrpcService) GetUserById(ctx context.Context, id int64) (*User, error) {
+func (u UserQueryGrpcService) GetUserById(ctx context.Context, id int64) (*User, error) {
 	byId, err := u.userServiceClient.GetUserById(ctx, &genproto.GetUserByIdRequest{
 		Id: id,
 	})
@@ -52,7 +63,7 @@ func (u UserGrpcService) GetUserById(ctx context.Context, id int64) (*User, erro
 	return protoToDto(byId)
 }
 
-func (u UserGrpcService) GetUserByName(ctx context.Context, name string) (*User, error) {
+func (u UserQueryGrpcService) GetUserByName(ctx context.Context, name string) (*User, error) {
 	byName, err := u.userServiceClient.GetUserByName(ctx, &genproto.GetUserByNameRequest{
 		Name: name,
 	})
@@ -63,7 +74,7 @@ func (u UserGrpcService) GetUserByName(ctx context.Context, name string) (*User,
 	return protoToDto(byName)
 }
 
-func (u UserGrpcService) GetUserBySub(ctx context.Context, sub uuid.UUID) (*User, error) {
+func (u UserQueryGrpcService) GetUserBySub(ctx context.Context, sub uuid.UUID) (*User, error) {
 	subBytes, err := sub.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -79,8 +90,8 @@ func (u UserGrpcService) GetUserBySub(ctx context.Context, sub uuid.UUID) (*User
 	return protoToDto(bySub)
 }
 
-func NewUsersClient(ctx context.Context, addr string) UserGrpcService {
-	conn, err := grpc.NewClient(addr, grpc.WithInsecure())
+func NewUsersClient(ctx context.Context, addr string) UserApplication {
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		panic(err)
 	}
@@ -101,5 +112,9 @@ func NewUsersClient(ctx context.Context, addr string) UserGrpcService {
 		}
 	}()
 
-	return UserGrpcService{userServiceClient: genproto.NewUserServiceClient(conn)}
+	query := UserQueryGrpcService{userServiceClient: genproto.NewUserServiceClient(conn)}
+
+	return UserApplication{
+		query: query,
+	}
 }

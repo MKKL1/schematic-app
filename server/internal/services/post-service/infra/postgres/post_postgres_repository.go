@@ -5,34 +5,34 @@ import (
 	"errors"
 	errorDB "github.com/MKKL1/schematic-app/server/internal/pkg/error/db"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
-	"github.com/MKKL1/schematic-app/server/internal/services/post-service/postgres/db"
+	db2 "github.com/MKKL1/schematic-app/server/internal/services/post-service/infra/postgres/db"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type PostPostgresRepository struct {
-	queries *db.Queries
+	queries *db2.Queries
 }
 
-func NewPostPostgresRepository(queries *db.Queries) *PostPostgresRepository {
+func NewPostPostgresRepository(queries *db2.Queries) *PostPostgresRepository {
 	if queries == nil {
 		panic("queries cannot be nil")
 	}
 	return &PostPostgresRepository{queries}
 }
 
-func (p *PostPostgresRepository) FindById(ctx context.Context, id int64) (post.Model, error) {
+func (p *PostPostgresRepository) FindById(ctx context.Context, id int64) (post.Entity, error) {
 	out, err := p.queries.GetPostById(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return post.Model{}, errorDB.ErrNoRows
+		return post.Entity{}, errorDB.ErrNoRows
 	} else if err != nil {
-		return post.Model{}, err
+		return post.Entity{}, err
 	}
 	return toModel(out)
 }
 
-func (p *PostPostgresRepository) Create(ctx context.Context, model post.Model) error {
-	params := []db.CreatePostParams{
+func (p *PostPostgresRepository) Create(ctx context.Context, model post.Entity) error {
+	params := []db2.CreatePostParams{
 		{
 			ID:            model.ID,
 			Name:          model.Name,
@@ -75,7 +75,7 @@ func toInt(val *int64) pgtype.Int8 {
 	}
 }
 
-func toModel(dbPost db.Post) (post.Model, error) {
+func toModel(dbPost db2.Post) (post.Entity, error) {
 	var desc *string = nil
 	if dbPost.Desc.Valid {
 		desc = &dbPost.Desc.String
@@ -90,7 +90,7 @@ func toModel(dbPost db.Post) (post.Model, error) {
 		authorId = &dbPost.AuthorKnown.Int64
 	}
 
-	return post.Model{
+	return post.Entity{
 		ID:          dbPost.ID,
 		Name:        dbPost.Name,
 		Description: desc,

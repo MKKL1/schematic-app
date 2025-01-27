@@ -5,20 +5,20 @@ import (
 	"fmt"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/rueidisaside"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
-	postProto "github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post/proto"
+	postProto "github.com/MKKL1/schematic-app/server/internal/services/post-service/infra/proto"
 	"github.com/golang/protobuf/proto"
 	"time"
 )
 
 type PostCacheRepository struct {
 	baseRepo    post.Repository
-	typedClient rueidisaside.TypedCacheAsideClient[post.Model]
+	typedClient rueidisaside.TypedCacheAsideClient[post.Entity]
 }
 
 func NewPostCacheRepository(baseRepo post.Repository, cacheClient rueidisaside.CacheAsideClient) *PostCacheRepository {
 	typedClient := rueidisaside.NewTypedCacheAsideClient(
 		cacheClient,
-		func(dbPost *post.Model) (string, error) {
+		func(dbPost *post.Entity) (string, error) {
 			pbModel := postProto.PostModel{
 				Id:    dbPost.ID,
 				Name:  dbPost.Name,
@@ -33,14 +33,14 @@ func NewPostCacheRepository(baseRepo post.Repository, cacheClient rueidisaside.C
 			}
 			return string(marshal), err
 		},
-		func(d string) (*post.Model, error) {
+		func(d string) (*post.Entity, error) {
 			pbModel := postProto.PostModel{}
 			err := proto.Unmarshal([]byte(d), &pbModel)
 			if err != nil {
 				return nil, err
 			}
 
-			postModel := &post.Model{
+			postModel := &post.Entity{
 				ID:          pbModel.Id,
 				Name:        pbModel.Name,
 				Description: pbModel.Desc,
@@ -56,8 +56,8 @@ func NewPostCacheRepository(baseRepo post.Repository, cacheClient rueidisaside.C
 	return &PostCacheRepository{baseRepo: baseRepo, typedClient: typedClient}
 }
 
-func (p PostCacheRepository) FindById(ctx context.Context, id int64) (post.Model, error) {
-	val, err := p.typedClient.Get(ctx, 10*time.Minute, fmt.Sprint("post:", id), func(ctx context.Context, key string) (val *post.Model, err error) {
+func (p PostCacheRepository) FindById(ctx context.Context, id int64) (post.Entity, error) {
+	val, err := p.typedClient.Get(ctx, 10*time.Minute, fmt.Sprint("post:", id), func(ctx context.Context, key string) (val *post.Entity, err error) {
 		postModel, err := p.baseRepo.FindById(ctx, id)
 		if err != nil {
 			return nil, err
@@ -66,14 +66,14 @@ func (p PostCacheRepository) FindById(ctx context.Context, id int64) (post.Model
 		return &postModel, nil
 	})
 	if err != nil {
-		return post.Model{}, err
+		return post.Entity{}, err
 	}
 	if val == nil {
-		return post.Model{}, fmt.Errorf("post not found")
+		return post.Entity{}, fmt.Errorf("post not found")
 	}
 	return *val, err
 }
 
-func (p PostCacheRepository) Create(ctx context.Context, model post.Model) error {
+func (p PostCacheRepository) Create(ctx context.Context, model post.Entity) error {
 	return p.baseRepo.Create(ctx, model)
 }

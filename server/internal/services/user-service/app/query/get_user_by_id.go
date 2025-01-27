@@ -10,7 +10,7 @@ import (
 )
 
 type GetUserByIdParams struct {
-	Id user.UserID
+	Id user.ID
 }
 
 type GetUserByIdHandler decorator.QueryHandler[GetUserByIdParams, user.User]
@@ -27,10 +27,10 @@ func (h getUserByIdHandler) Handle(ctx context.Context, params GetUserByIdParams
 	userModel, err := h.repo.FindById(ctx, params.Id.Unwrap())
 	if err != nil {
 		if errors.Is(err, db.ErrNoRows) {
-			return user.User{}, appErr.WrapErrorf(err, user.ErrorCodeUserNotFound, "repo.FindById")
+			return user.User{}, appErr.WrapErrorf(err, user.ErrCodeUserNotFound, "repo.FindById")
 		}
 		return user.User{}, appErr.WrapErrorf(err, appErr.ErrorCodeUnknown, "repo.FindById")
 	}
 
-	return user.ToDTO(userModel), nil
+	return user.EntityToDTO(userModel), nil
 }

@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package models;
+
+option go_package = "github.com/MKKL1/schematic-app/server/internal/services/user-service/infra/models";
+
+message UserEntity {
+  int64 id = 1;
+  string name = 2;
+  bytes oidc_sub = 3;
+}

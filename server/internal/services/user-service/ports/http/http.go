@@ -1,4 +1,4 @@
-package ports
+package http
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/app/command"
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/app/query"
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/domain/user"
-	userhttp "github.com/MKKL1/schematic-app/server/internal/services/user-service/http"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
@@ -45,7 +44,7 @@ func (s *UserController) GetMe(c echo.Context) error {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, userhttp.UserToResponse(userDto))
+	return c.JSON(http.StatusOK, UserResponseFromDomain(userDto))
 }
 
 func (s *UserController) GetUserByID(c echo.Context) error {
@@ -61,7 +60,7 @@ func (s *UserController) GetUserByID(c echo.Context) error {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, userhttp.UserToResponse(userDto))
+	return c.JSON(http.StatusOK, UserResponseFromDomain(userDto))
 }
 
 func (s *UserController) CreateUser(c echo.Context) error {
@@ -72,7 +71,7 @@ func (s *UserController) CreateUser(c echo.Context) error {
 
 	ctx := context.Background()
 
-	requestData := userhttp.UserCreateRequest{}
+	requestData := UserCreateRequest{}
 	err = json.NewDecoder(c.Request().Body).Decode(&requestData)
 	if err != nil {
 		return err

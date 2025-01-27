@@ -1,4 +1,4 @@
-package ports
+package http
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/command"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/query"
-	posthttp "github.com/MKKL1/schematic-app/server/internal/services/post-service/http"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"net/http"
@@ -45,7 +44,7 @@ func (pc *PostController) GetPost(c echo.Context) error {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, posthttp.PostToResponse(postDto))
+	return c.JSON(http.StatusOK, PostToResponse(postDto))
 }
 
 func (pc *PostController) CreatePost(c echo.Context) error {
@@ -56,7 +55,7 @@ func (pc *PostController) CreatePost(c echo.Context) error {
 
 	ctx := context.Background()
 
-	requestData := posthttp.PostCreateRequest{}
+	requestData := PostCreateRequest{}
 	err = json.NewDecoder(c.Request().Body).Decode(&requestData)
 	if err != nil {
 		return err

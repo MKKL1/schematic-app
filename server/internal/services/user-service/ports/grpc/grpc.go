@@ -1,4 +1,4 @@
-package ports
+package grpc
 
 import (
 	"context"
@@ -19,7 +19,7 @@ func NewGrpcServer(app app.Application) *GrpcServer {
 }
 
 func (s GrpcServer) GetUserById(ctx context.Context, request *genproto.GetUserByIdRequest) (*genproto.User, error) {
-	userDto, err := s.app.Queries.GetUserById.Handle(ctx, query.GetUserByIdParams{Id: domainUser.UserID(request.GetId())})
+	userDto, err := s.app.Queries.GetUserById.Handle(ctx, query.GetUserByIdParams{Id: domainUser.ID(request.GetId())})
 	if err != nil {
 		return nil, err
 	}

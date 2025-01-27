@@ -9,7 +9,7 @@ type UserResponse struct {
 	Name string `json:"name"`
 }
 
-func UserToResponse(user user.User) UserResponse {
+func UserResponseFromDomain(user user.User) UserResponse {
 	return UserResponse{
 		ID:   user.ID.String(),
 		Name: user.Name,

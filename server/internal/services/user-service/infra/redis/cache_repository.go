@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/rueidisaside"
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/domain/user"
-	"github.com/MKKL1/schematic-app/server/internal/services/user-service/domain/user/data"
+	protoModel "github.com/MKKL1/schematic-app/server/internal/services/user-service/infra/proto"
 	"github.com/dgraph-io/ristretto/v2"
 	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
@@ -20,7 +20,7 @@ import (
 type CacheRepository struct {
 	baseRepo    user.Repository
 	cacheClient rueidisaside.CacheAsideClient
-	typedClient rueidisaside.TypedCacheAsideClient[user.Model]
+	typedClient rueidisaside.TypedCacheAsideClient[user.Entity]
 	subCache    *ristretto.Cache[string, int64]
 	nameCache   *ristretto.Cache[string, int64]
 }
@@ -48,49 +48,34 @@ func NewCacheRepository(baseRepo user.Repository, cacheClient rueidisaside.Cache
 
 	typedClient := rueidisaside.NewTypedCacheAsideClient(
 		cacheClient,
-		func(user *user.Model) (string, error) {
-			sub, err := user.OidcSub.MarshalBinary()
+		func(user *user.Entity) (string, error) {
+			pbModel, err := protoModel.FromEntity(user)
 			if err != nil {
 				return "", err
 			}
-			pbModel := data.UserModel{
-				Id:      user.ID,
-				Name:    user.Name,
-				OidcSub: sub,
-			}
-			marshal, err := proto.Marshal(&pbModel)
+
+			marshal, err := proto.Marshal(pbModel)
 			if err != nil {
 				return "", err
 			}
 			return string(marshal), err
 		},
-		func(d string) (*user.Model, error) {
-			pbModel := data.UserModel{}
+		func(d string) (*user.Entity, error) {
+			pbModel := protoModel.UserEntity{}
 			err := proto.Unmarshal([]byte(d), &pbModel)
 			if err != nil {
 				return nil, err
 			}
 
-			sub, err := uuid.FromBytes(pbModel.OidcSub)
-			if err != nil {
-				return nil, err
-			}
-
-			userModel := &user.Model{
-				ID:      pbModel.Id,
-				Name:    pbModel.Name,
-				OidcSub: sub,
-			}
-
-			return userModel, nil
+			return protoModel.ToEntity(&pbModel)
 		},
 	)
 
 	return CacheRepository{baseRepo, cacheClient, typedClient, subCache, nameCache}
 }
 
-func (c CacheRepository) findById(ctx context.Context, id int64) (user.Model, error) {
-	val, err := c.typedClient.Get(ctx, 10*time.Minute, fmt.Sprint("usr:", id), func(ctx context.Context, key string) (val *user.Model, err error) {
+func (c CacheRepository) findById(ctx context.Context, id int64) (user.Entity, error) {
+	val, err := c.typedClient.Get(ctx, 10*time.Minute, fmt.Sprint("usr:", id), func(ctx context.Context, key string) (val *user.Entity, err error) {
 		userModel, err := c.baseRepo.FindById(ctx, id)
 		if err != nil {
 			return nil, err
@@ -99,22 +84,22 @@ func (c CacheRepository) findById(ctx context.Context, id int64) (user.Model, er
 		return &userModel, nil
 	})
 	if err != nil {
-		return user.Model{}, err
+		return user.Entity{}, err
 	}
 	if val == nil {
-		return user.Model{}, fmt.Errorf("user not found")
+		return user.Entity{}, fmt.Errorf("user not found")
 	}
 	return *val, err
 }
 
-func (c CacheRepository) FindById(ctx context.Context, id int64) (user.Model, error) {
+func (c CacheRepository) FindById(ctx context.Context, id int64) (user.Entity, error) {
 	return c.findById(ctx, id)
 }
 
 // NOTE: Right now each query saves a copy of user instead of one user object that is shared across query methods
 //TODO find id of user based on sub and name in cache
 
-func (c CacheRepository) FindByOidcSub(ctx context.Context, oidcSub uuid.UUID) (user.Model, error) {
+func (c CacheRepository) FindByOidcSub(ctx context.Context, oidcSub uuid.UUID) (user.Entity, error) {
 	oidcSubStr := oidcSub.String()
 
 	userId, exists := c.subCache.Get(oidcSubStr)
@@ -125,26 +110,26 @@ func (c CacheRepository) FindByOidcSub(ctx context.Context, oidcSub uuid.UUID) (
 	//Cache new
 	userModel, err := c.baseRepo.FindByOidcSub(ctx, oidcSub)
 	if err != nil {
-		return user.Model{}, err
+		return user.Entity{}, err
 	}
 	userId = userModel.ID
 	c.subCache.SetWithTTL(oidcSubStr, userId, 1, 30*time.Minute)
 
-	val, err := c.typedClient.Get(ctx, 10*time.Minute, fmt.Sprint("usr:", userId), func(ctx context.Context, key string) (val *user.Model, err error) {
+	val, err := c.typedClient.Get(ctx, 10*time.Minute, fmt.Sprint("usr:", userId), func(ctx context.Context, key string) (val *user.Entity, err error) {
 		//If user model is not already cached, use the object that is already fetched
 		return &userModel, nil
 	})
 
 	if err != nil {
-		return user.Model{}, err
+		return user.Entity{}, err
 	}
 	if val == nil {
-		return user.Model{}, fmt.Errorf("user not found")
+		return user.Entity{}, fmt.Errorf("user not found")
 	}
 	return *val, err
 }
 
-func (c CacheRepository) FindByName(ctx context.Context, name string) (user.Model, error) {
+func (c CacheRepository) FindByName(ctx context.Context, name string) (user.Entity, error) {
 	userId, exists := c.nameCache.Get(name)
 	if exists {
 		return c.findById(ctx, userId)
@@ -153,26 +138,26 @@ func (c CacheRepository) FindByName(ctx context.Context, name string) (user.Mode
 	//Cache new
 	userModel, err := c.baseRepo.FindByName(ctx, name)
 	if err != nil {
-		return user.Model{}, err
+		return user.Entity{}, err
 	}
 	userId = userModel.ID
 	c.nameCache.SetWithTTL(name, userId, 1, 30*time.Minute)
 
-	val, err := c.typedClient.Get(ctx, 10*time.Minute, fmt.Sprint("usr:", userId), func(ctx context.Context, key string) (val *user.Model, err error) {
+	val, err := c.typedClient.Get(ctx, 10*time.Minute, fmt.Sprint("usr:", userId), func(ctx context.Context, key string) (val *user.Entity, err error) {
 		//If user model is not already cached, use the object that is already fetched
 		return &userModel, nil
 	})
 
 	if err != nil {
-		return user.Model{}, err
+		return user.Entity{}, err
 	}
 	if val == nil {
-		return user.Model{}, fmt.Errorf("user not found")
+		return user.Entity{}, fmt.Errorf("user not found")
 	}
 	return *val, err
 }
 
-func (c CacheRepository) CreateUser(ctx context.Context, user user.Model) (int64, error) {
+func (c CacheRepository) CreateUser(ctx context.Context, user user.Entity) (int64, error) {
 	//Nothing to cache
 	return c.baseRepo.CreateUser(ctx, user)
 }

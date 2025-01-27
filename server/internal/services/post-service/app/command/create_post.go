@@ -6,15 +6,21 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
 	appErr "github.com/MKKL1/schematic-app/server/internal/pkg/error"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
-	"github.com/MKKL1/schematic-app/server/internal/services/post-service/http"
 	"github.com/bwmarrin/snowflake"
 	"github.com/google/uuid"
 	"strconv"
 )
 
 type CreatePostParams struct {
-	http.PostCreateRequest
-	Sub uuid.UUID
+	Name        string
+	Description *string
+	Author      *CreateAuthorParams
+	Sub         uuid.UUID
+}
+
+type CreateAuthorParams struct {
+	Name *string
+	ID   *string
 }
 
 type CreatePostHandler decorator.CommandHandler[CreatePostParams, int64]
@@ -22,10 +28,10 @@ type CreatePostHandler decorator.CommandHandler[CreatePostParams, int64]
 type createPostHandler struct {
 	repo        post.Repository
 	idNode      *snowflake.Node
-	userService client.UserGrpcService
+	userService client.UserQueryGrpcService
 }
 
-func NewCreatePostHandler(repo post.Repository, idNode *snowflake.Node, userService client.UserGrpcService) CreatePostHandler {
+func NewCreatePostHandler(repo post.Repository, idNode *snowflake.Node, userService client.UserQueryGrpcService) CreatePostHandler {
 	return createPostHandler{repo, idNode, userService}
 }
 
@@ -49,7 +55,7 @@ func (h createPostHandler) Handle(ctx context.Context, params CreatePostParams) 
 		}
 	}
 
-	newPost := post.Model{
+	newPost := post.Entity{
 		ID:          h.idNode.Generate().Int64(),
 		Name:        params.Name,
 		Description: params.Description,

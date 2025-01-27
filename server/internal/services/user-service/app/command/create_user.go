@@ -16,7 +16,7 @@ type CreateUserParams struct {
 	Sub      uuid.UUID
 }
 
-type CreateUserHandler decorator.CommandHandler[CreateUserParams, user.UserID]
+type CreateUserHandler decorator.CommandHandler[CreateUserParams, user.ID]
 
 type createUserHandler struct {
 	repo   user.Repository
@@ -27,8 +27,8 @@ func NewCreateUserHandler(repo user.Repository, idNode *snowflake.Node) CreateUs
 	return createUserHandler{repo, idNode}
 }
 
-func (h createUserHandler) Handle(ctx context.Context, params CreateUserParams) (user.UserID, error) {
-	newUser := user.Model{
+func (h createUserHandler) Handle(ctx context.Context, params CreateUserParams) (user.ID, error) {
+	newUser := user.Entity{
 		ID:      h.idNode.Generate().Int64(),
 		Name:    params.Username,
 		OidcSub: params.Sub,
@@ -40,13 +40,13 @@ func (h createUserHandler) Handle(ctx context.Context, params CreateUserParams) 
 		if errors.As(err, &e) {
 			switch e.Field {
 			case "OidcSub":
-				return 0, appErr.WrapErrorf(err, user.ErrorCodeSubConflict, "repo.CreateUser")
+				return 0, appErr.WrapErrorf(err, user.ErrCodeSubConflict, "repo.CreateUser")
 			case "Name":
-				return 0, appErr.WrapErrorf(err, user.ErrorCodeNameConflict, "repo.CreateUser")
+				return 0, appErr.WrapErrorf(err, user.ErrCodeNameConflict, "repo.CreateUser")
 			}
 		}
 		return 0, appErr.WrapErrorf(err, appErr.ErrorCodeUnknown, "repo.CreateUser")
 	}
 
-	return user.UserID(newUser.ID), nil
+	return user.ID(newUser.ID), nil
 }

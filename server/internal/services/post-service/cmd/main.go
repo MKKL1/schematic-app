@@ -4,8 +4,7 @@ import (
 	"context"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/http/middlewares"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
-	"github.com/MKKL1/schematic-app/server/internal/services/post-service/http"
-	"github.com/MKKL1/schematic-app/server/internal/services/post-service/ports"
+	"github.com/MKKL1/schematic-app/server/internal/services/post-service/ports/http"
 	"os"
 	"os/signal"
 	"time"
@@ -34,8 +33,8 @@ func main() {
 		//	genproto.RegisterUserServiceServer(server, srv)
 		//})
 
-		postController := ports.NewPostController(application)
-		ports.RegisterRoutes(e, postController)
+		postController := http.NewPostController(application)
+		http.RegisterRoutes(e, postController)
 	}()
 
 	<-ctx.Done()

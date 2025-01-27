@@ -28,10 +28,10 @@ func (h getUserBySubHandler) Handle(ctx context.Context, params GetUserBySubPara
 	userModel, err := h.repo.FindByOidcSub(ctx, params.Sub)
 	if err != nil {
 		if errors.Is(err, db.ErrNoRows) {
-			return user.User{}, appErr.WrapErrorf(err, user.ErrorCodeUserNotFound, "repo.FindByOidcSub")
+			return user.User{}, appErr.WrapErrorf(err, user.ErrCodeUserNotFound, "repo.FindByOidcSub")
 		}
 		return user.User{}, appErr.WrapErrorf(err, appErr.ErrorCodeUnknown, "repo.FindByOidcSub")
 	}
 
-	return user.ToDTO(userModel), nil
+	return user.EntityToDTO(userModel), nil
 }
