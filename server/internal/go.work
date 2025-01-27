@@ -3,5 +3,6 @@ go 1.23
 use (
 	./services/post-service
 	./services/user-service
+	./services/author-service
 	./pkg
 )
