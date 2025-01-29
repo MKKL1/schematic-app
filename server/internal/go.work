@@ -4,5 +4,6 @@ use (
 	./services/post-service
 	./services/user-service
 	./services/author-service
+	./services/tag-service
 	./pkg
 )
