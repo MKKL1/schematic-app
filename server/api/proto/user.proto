@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package proto;
 
-option go_package = "github.com/MKKL1/schematic-app/server/internal/pkg/genproto/user";
+option go_package = "github.com/MKKL1/schematic-app/server/internal/pkg/genproto";
 
 service UserService {
   rpc GetUserById(GetUserByIdRequest) returns (User) {}

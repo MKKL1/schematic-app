@@ -1,10 +1,11 @@
-package cmd
+package main
 
 import (
 	"context"
-	"github.com/MKKL1/schematic-app/server/internal/pkg/http/middlewares"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/genproto"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
-	"github.com/MKKL1/schematic-app/server/internal/services/post-service/ports/http"
+	"github.com/MKKL1/schematic-app/server/internal/services/tag-service/ports"
+	"google.golang.org/grpc"
 	"os"
 	"os/signal"
 	"time"
@@ -24,17 +25,24 @@ func main() {
 			Host:     "localhost",
 		})
 
-		e.HTTPErrorHandler = middlewares.HTTPErrorHandler(http.MapAppError)
-
 		application := NewApplication(ctx)
 
-		//server.RunGRPCServer(ctx, ":8002", func(server *grpc.Server) {
-		//	srv := ports.NewGrpcServer(application)
-		//	genproto.RegisterUserServiceServer(server, srv)
+		//_, err := application.Commands.CreateCategoryVars.Handle(ctx, command.CreatePostCatValuesParams{
+		//	PostId:     532,
+		//	CategoryId: 3,
+		//	Values:     []byte(`{"afkable": {"max": 433, "min": 212}, "mob_type": "spider", "spawn_rate": {"max": 433, "min": 212}}`),
 		//})
+		//if err != nil {
+		//	log.Err(err).Msg("Error creating category vars")
+		//}
 
-		postController := http.NewPostController(application)
-		http.RegisterRoutes(e, postController)
+		server.RunGRPCServer(ctx, ":8003", func(server *grpc.Server) {
+			srv := ports.NewGrpcServer(application)
+			genproto.RegisterTagServiceServer(server, srv)
+		})
+
+		//postController := http.NewPostController(application)
+		//http.RegisterRoutes(e, postController)
 	}()
 
 	<-ctx.Done()
