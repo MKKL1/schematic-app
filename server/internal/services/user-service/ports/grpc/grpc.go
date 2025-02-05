@@ -4,9 +4,11 @@ import (
 	"context"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/genproto"
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/app"
+	"github.com/MKKL1/schematic-app/server/internal/services/user-service/app/command"
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/app/query"
 	domainUser "github.com/MKKL1/schematic-app/server/internal/services/user-service/domain/user"
 	"github.com/google/uuid"
+	"google.golang.org/grpc"
 )
 
 type GrpcServer struct {
@@ -43,6 +45,20 @@ func (s GrpcServer) GetUserBySub(ctx context.Context, request *genproto.GetUserB
 
 func (s GrpcServer) GetUserByName(ctx context.Context, request *genproto.GetUserByNameRequest) (*genproto.User, error) {
 	panic("implement me")
+}
+
+func (s GrpcServer) CreateUser(ctx context.Context, request *genproto.CreateUserRequest, opts ...grpc.CallOption) (*genproto.CreateUserResponse, error) {
+	sub, err := uuid.FromBytes(request.GetOidcSub())
+	if err != nil {
+		return nil, err
+	}
+
+	newId, err := s.app.Commands.CreateUser.Handle(ctx, command.CreateUserParams{Username: request.Name, Sub: sub})
+	if err != nil {
+		return nil, err
+	}
+
+	return &genproto.CreateUserResponse{Id: newId.Unwrap()}, nil
 }
 
 func (s GrpcServer) mustEmbedUnimplementedUserServiceServer() {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/http/middlewares"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
+	"github.com/MKKL1/schematic-app/server/internal/services/gateway/post"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/ports/http"
 	"os"
 	"os/signal"
@@ -24,7 +25,7 @@ func main() {
 			Host:     "localhost",
 		})
 
-		e.HTTPErrorHandler = middlewares.HTTPErrorHandler(http.MapAppError)
+		e.HTTPErrorHandler = middlewares.HTTPErrorHandler(post.MapAppError)
 
 		application := NewApplication(ctx)
 

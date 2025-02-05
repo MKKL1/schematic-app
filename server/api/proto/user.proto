@@ -8,6 +8,7 @@ service UserService {
   rpc GetUserById(GetUserByIdRequest) returns (User) {}
   rpc GetUserByName(GetUserByNameRequest) returns (User) {}
   rpc GetUserBySub(GetUserBySubRequest) returns (User) {}
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {}
 }
 
 message GetUserByIdRequest {
@@ -21,6 +22,16 @@ message GetUserByNameRequest {
 message GetUserBySubRequest {
   bytes oidc_sub = 1;
 }
+
+message CreateUserRequest {
+  string name = 1;
+  bytes oidc_sub = 2;
+}
+
+message CreateUserResponse {
+  int64 id = 1;
+}
+
 
 message User {
   int64 id = 1;

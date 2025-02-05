@@ -35,11 +35,12 @@ func protoToDto(prUser *genproto.User) (*User, error) {
 }
 
 type UserApplication struct {
-	command UserCommandService
-	query   UserQueryService
+	Command UserCommandService
+	Query   UserQueryService
 }
 
 type UserCommandService interface {
+	CreateUser(ctx context.Context, name string, sub uuid.UUID) (int64, error)
 }
 
 type UserQueryService interface {
@@ -90,6 +91,27 @@ func (u UserQueryGrpcService) GetUserBySub(ctx context.Context, sub uuid.UUID) (
 	return protoToDto(bySub)
 }
 
+type UserCommandGrpcService struct {
+	userServiceClient genproto.UserServiceClient
+}
+
+func (u UserCommandGrpcService) CreateUser(ctx context.Context, name string, sub uuid.UUID) (int64, error) {
+	subBytes, err := sub.MarshalBinary()
+	if err != nil {
+		return 0, err
+	}
+
+	newId, err := u.userServiceClient.CreateUser(ctx, &genproto.CreateUserRequest{
+		Name:    name,
+		OidcSub: subBytes,
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	return newId.Id, nil
+}
+
 func NewUsersClient(ctx context.Context, addr string) UserApplication {
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -115,6 +137,6 @@ func NewUsersClient(ctx context.Context, addr string) UserApplication {
 	query := UserQueryGrpcService{userServiceClient: genproto.NewUserServiceClient(conn)}
 
 	return UserApplication{
-		query: query,
+		Query: query,
 	}
 }

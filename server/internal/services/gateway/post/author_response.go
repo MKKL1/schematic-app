@@ -1,4 +1,4 @@
-package http
+package post
 
 import (
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"

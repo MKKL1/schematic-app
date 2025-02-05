@@ -1,4 +1,4 @@
-package http
+package post
 
 type PostCreateRequest struct {
 	Name        string          `json:"name" validate:"required,min=5,max=32"`

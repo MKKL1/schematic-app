@@ -1,4 +1,4 @@
-package http
+package user
 
 import (
 	appErr "github.com/MKKL1/schematic-app/server/internal/pkg/error"
