@@ -9,8 +9,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-// TODO there are way too many user structs
-
 type User struct {
 	ID      int64
 	Name    string

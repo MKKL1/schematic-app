@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/MKKL1/schematic-app/server/internal/pkg/genproto";
+
+service PostService {
+  rpc GetPostById(PostByIdRequest) returns (Post) {}
+  rpc CreatePost(CreatePostRequest) returns (CreatePostResponse) {}
+}
+
+message PostByIdRequest {
+  int64 id = 1;
+}
+
+message CreatePostRequest {
+  string name = 1;
+  optional string description = 2;
+  optional string authorName = 3;
+  optional int64 authorId = 4;
+  bytes authSub = 5;
+}
+
+message CreatePostResponse {
+  int64 id = 1;
+}
+
+message Post {
+  int64 id = 1;
+  string name = 2;
+  optional string description = 3;
+  int64 owner = 4;
+  optional int64 author = 5;
+}

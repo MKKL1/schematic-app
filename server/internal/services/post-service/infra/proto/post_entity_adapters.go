@@ -2,31 +2,24 @@ package proto
 
 import (
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
-	"github.com/MKKL1/schematic-app/server/internal/services/user-service/domain/user"
-	"github.com/google/uuid"
-	"google.golang.org/protobuf/runtime/protoimpl"
 )
 
-func FromEntity(entity *post.Entity) (*PostEntity, error) {
-	return &PostEntity{
+func FromEntity(entity post.Entity) PostEntity {
+	return PostEntity{
 		Id:    entity.ID,
 		Name:  entity.Name,
 		Desc:  entity.Description,
 		Owner: entity.Owner,
-		AName: entity.AuthorName,
 		AId:   entity.AuthorID,
-	}, nil
+	}
 }
 
-func ToEntity(protoEntity *PostEntity) (*post.Entity, error) {
-	sub, err := uuid.FromBytes(protoEntity.OidcSub)
-	if err != nil {
-		return nil, err
+func ToEntity(protoEntity *PostEntity) post.Entity {
+	return post.Entity{
+		ID:          protoEntity.Id,
+		Name:        protoEntity.Name,
+		Description: protoEntity.Desc,
+		Owner:       protoEntity.Owner,
+		AuthorID:    protoEntity.AId,
 	}
-
-	return &user.Entity{
-		ID:      protoEntity.Id,
-		Name:    protoEntity.Name,
-		OidcSub: sub,
-	}, nil
 }

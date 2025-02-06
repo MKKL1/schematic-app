@@ -9,7 +9,6 @@ type Entity struct {
 	Name        string
 	Description *string
 	Owner       int64
-	AuthorName  *string
 	AuthorID    *int64
 }
 

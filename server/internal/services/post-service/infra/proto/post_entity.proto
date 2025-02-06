@@ -9,6 +9,5 @@ message PostEntity {
   string name = 2;
   optional string desc = 3;
   int64 owner = 4;
-  optional string aName = 5;
-  optional int64 aId = 6;
+  optional int64 aId = 5;
 }

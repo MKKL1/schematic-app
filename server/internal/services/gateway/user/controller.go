@@ -22,10 +22,10 @@ func RegisterRoutes(e *echo.Echo, server *Controller) {
 }
 
 type Controller struct {
-	userApp client.UserApplication
+	userApp client.PostApplication
 }
 
-func NewController(userApp client.UserApplication) *Controller {
+func NewController(userApp client.PostApplication) *Controller {
 	return &Controller{userApp}
 }
 

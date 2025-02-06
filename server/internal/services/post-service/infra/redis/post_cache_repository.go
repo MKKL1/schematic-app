@@ -19,14 +19,7 @@ func NewPostCacheRepository(baseRepo post.Repository, cacheClient rueidisaside.C
 	typedClient := rueidisaside.NewTypedCacheAsideClient(
 		cacheClient,
 		func(dbPost *post.Entity) (string, error) {
-			pbModel := postProto.PostModel{
-				Id:    dbPost.ID,
-				Name:  dbPost.Name,
-				Desc:  dbPost.Description,
-				Owner: dbPost.Owner,
-				AName: dbPost.AuthorName,
-				AId:   dbPost.AuthorID,
-			}
+			pbModel := postProto.FromEntity(*dbPost)
 			marshal, err := proto.Marshal(&pbModel)
 			if err != nil {
 				return "", err
@@ -34,22 +27,14 @@ func NewPostCacheRepository(baseRepo post.Repository, cacheClient rueidisaside.C
 			return string(marshal), err
 		},
 		func(d string) (*post.Entity, error) {
-			pbModel := postProto.PostModel{}
+			pbModel := postProto.PostEntity{}
 			err := proto.Unmarshal([]byte(d), &pbModel)
 			if err != nil {
 				return nil, err
 			}
 
-			postModel := &post.Entity{
-				ID:          pbModel.Id,
-				Name:        pbModel.Name,
-				Description: pbModel.Desc,
-				Owner:       pbModel.Owner,
-				AuthorName:  pbModel.AName,
-				AuthorID:    pbModel.AId,
-			}
-
-			return postModel, nil
+			postModel := postProto.ToEntity(&pbModel)
+			return &postModel, nil
 		},
 	)
 

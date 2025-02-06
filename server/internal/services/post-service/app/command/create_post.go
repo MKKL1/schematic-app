@@ -8,19 +8,14 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
 	"github.com/bwmarrin/snowflake"
 	"github.com/google/uuid"
-	"strconv"
 )
 
 type CreatePostParams struct {
 	Name        string
 	Description *string
-	Author      *CreateAuthorParams
+	AuthorName  *string
+	AuthorID    *int64
 	Sub         uuid.UUID
-}
-
-type CreateAuthorParams struct {
-	Name *string
-	ID   *string
 }
 
 type CreatePostHandler decorator.CommandHandler[CreatePostParams, int64]
@@ -41,27 +36,14 @@ func (h createPostHandler) Handle(ctx context.Context, params CreatePostParams) 
 		return 0, err
 	}
 
-	var authorName *string
-	var authorID *int64
-	if params.Author != nil {
-		authorName = params.Author.Name
-
-		if params.Author.ID != nil {
-			parInt, err := strconv.ParseInt(*params.Author.ID, 10, 64)
-			if err != nil {
-				return 0, err
-			}
-			authorID = &parInt
-		}
-	}
+	//TODO if author id null and author name not null, then create author in author service
 
 	newPost := post.Entity{
 		ID:          h.idNode.Generate().Int64(),
 		Name:        params.Name,
 		Description: params.Description,
 		Owner:       user.ID,
-		AuthorName:  authorName,
-		AuthorID:    authorID,
+		AuthorID:    params.AuthorID,
 	}
 
 	err = h.repo.Create(ctx, newPost)
