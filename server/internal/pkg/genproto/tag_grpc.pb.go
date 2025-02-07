@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	TagService_CreateCategoryVars_FullMethodName = "/proto.TagService/CreateCategoryVars"
+	TagService_GetCategVarsByPost_FullMethodName = "/proto.TagService/GetCategVarsByPost"
 )
 
 // TagServiceClient is the client API for TagService service.
@@ -28,6 +29,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type TagServiceClient interface {
 	CreateCategoryVars(ctx context.Context, in *CreateCategoryVarsParams, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	GetCategVarsByPost(ctx context.Context, in *GetCategVarsByPostRequest, opts ...grpc.CallOption) (*CategVarsByPostResponse, error)
 }
 
 type tagServiceClient struct {
@@ -48,11 +50,22 @@ func (c *tagServiceClient) CreateCategoryVars(ctx context.Context, in *CreateCat
 	return out, nil
 }
 
+func (c *tagServiceClient) GetCategVarsByPost(ctx context.Context, in *GetCategVarsByPostRequest, opts ...grpc.CallOption) (*CategVarsByPostResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CategVarsByPostResponse)
+	err := c.cc.Invoke(ctx, TagService_GetCategVarsByPost_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TagServiceServer is the server API for TagService service.
 // All implementations must embed UnimplementedTagServiceServer
 // for forward compatibility.
 type TagServiceServer interface {
 	CreateCategoryVars(context.Context, *CreateCategoryVarsParams) (*emptypb.Empty, error)
+	GetCategVarsByPost(context.Context, *GetCategVarsByPostRequest) (*CategVarsByPostResponse, error)
 	mustEmbedUnimplementedTagServiceServer()
 }
 
@@ -65,6 +78,9 @@ type UnimplementedTagServiceServer struct{}
 
 func (UnimplementedTagServiceServer) CreateCategoryVars(context.Context, *CreateCategoryVarsParams) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateCategoryVars not implemented")
+}
+func (UnimplementedTagServiceServer) GetCategVarsByPost(context.Context, *GetCategVarsByPostRequest) (*CategVarsByPostResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCategVarsByPost not implemented")
 }
 func (UnimplementedTagServiceServer) mustEmbedUnimplementedTagServiceServer() {}
 func (UnimplementedTagServiceServer) testEmbeddedByValue()                    {}
@@ -105,6 +121,24 @@ func _TagService_CreateCategoryVars_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TagService_GetCategVarsByPost_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCategVarsByPostRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TagServiceServer).GetCategVarsByPost(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TagService_GetCategVarsByPost_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TagServiceServer).GetCategVarsByPost(ctx, req.(*GetCategVarsByPostRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // TagService_ServiceDesc is the grpc.ServiceDesc for TagService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -115,6 +149,10 @@ var TagService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateCategoryVars",
 			Handler:    _TagService_CreateCategoryVars_Handler,
+		},
+		{
+			MethodName: "GetCategVarsByPost",
+			Handler:    _TagService_GetCategVarsByPost_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

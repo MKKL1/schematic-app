@@ -6,24 +6,19 @@ import (
 )
 
 type Entity struct {
-	ID               int64
 	Name             string
 	ValueDefinitions json.RawMessage
 }
 
-type PostCategoryValue struct {
-	PostID     int64
-	CategoryID int64
-	Values     json.RawMessage
-}
-
-type WithValues struct {
-	Entity
-	Values json.RawMessage
+type PostCategoryVars struct {
+	PostID   int64
+	Category string
+	Values   json.RawMessage
 }
 
 type Repository interface {
-	FindCategoryByID(ctx context.Context, id int64) (Entity, error)
+	FindCategoryByID(ctx context.Context, name string) (Entity, error)
+	FindCategVarsByPostID(ctx context.Context, postID int64) ([]PostCategoryVars, error)
 	CreateCategory(ctx context.Context, category Entity) (Entity, error)
-	CreatePostCategory(ctx context.Context, pcv PostCategoryValue) (PostCategoryValue, error)
+	CreatePostCategory(ctx context.Context, pcv PostCategoryVars) error
 }

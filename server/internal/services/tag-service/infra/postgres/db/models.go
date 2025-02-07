@@ -5,13 +5,12 @@
 package db
 
 type Category struct {
-	ID               int64
 	Name             string
 	ValueDefinitions []byte
 }
 
 type PostCategoryValue struct {
-	PostID     int64
-	CategoryID int64
-	Values     []byte
+	PostID   int64
+	Category string
+	Values   []byte
 }

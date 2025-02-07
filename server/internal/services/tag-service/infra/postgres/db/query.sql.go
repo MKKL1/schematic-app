@@ -10,111 +10,60 @@ import (
 )
 
 const createCategory = `-- name: CreateCategory :one
-INSERT INTO categories (id, name, value_definitions)
-VALUES ($1, $2 ,$3)
-RETURNING id, name, value_definitions
+INSERT INTO categories (name, value_definitions)
+VALUES ($1, $2)
+RETURNING name, value_definitions
 `
 
 type CreateCategoryParams struct {
-	ID               int64
 	Name             string
 	ValueDefinitions []byte
 }
 
 func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error) {
-	row := q.db.QueryRow(ctx, createCategory, arg.ID, arg.Name, arg.ValueDefinitions)
+	row := q.db.QueryRow(ctx, createCategory, arg.Name, arg.ValueDefinitions)
 	var i Category
-	err := row.Scan(&i.ID, &i.Name, &i.ValueDefinitions)
+	err := row.Scan(&i.Name, &i.ValueDefinitions)
 	return i, err
 }
 
-const createPostCategory = `-- name: CreatePostCategory :one
-INSERT INTO post_category_values (post_id, category_id, values)
+const createPostCategory = `-- name: CreatePostCategory :exec
+INSERT INTO post_category_values (post_id, category, values)
 VALUES ($1, $2, $3)
-RETURNING post_id, category_id, values
+RETURNING post_id, category, values
 `
 
 type CreatePostCategoryParams struct {
-	PostID     int64
-	CategoryID int64
-	Values     []byte
+	PostID   int64
+	Category string
+	Values   []byte
 }
 
-func (q *Queries) CreatePostCategory(ctx context.Context, arg CreatePostCategoryParams) (PostCategoryValue, error) {
-	row := q.db.QueryRow(ctx, createPostCategory, arg.PostID, arg.CategoryID, arg.Values)
-	var i PostCategoryValue
-	err := row.Scan(&i.PostID, &i.CategoryID, &i.Values)
-	return i, err
+func (q *Queries) CreatePostCategory(ctx context.Context, arg CreatePostCategoryParams) error {
+	_, err := q.db.Exec(ctx, createPostCategory, arg.PostID, arg.Category, arg.Values)
+	return err
 }
 
-const getCategoryByID = `-- name: GetCategoryByID :one
-SELECT id, name, value_definitions FROM categories
-WHERE id = $1 LIMIT 1
+const getCategVarsForPost = `-- name: GetCategVarsForPost :many
+SELECT category, values FROM post_category_values
+WHERE post_id = $1
 `
 
-func (q *Queries) GetCategoryByID(ctx context.Context, id int64) (Category, error) {
-	row := q.db.QueryRow(ctx, getCategoryByID, id)
-	var i Category
-	err := row.Scan(&i.ID, &i.Name, &i.ValueDefinitions)
-	return i, err
+type GetCategVarsForPostRow struct {
+	Category string
+	Values   []byte
 }
 
-const getCategoryByName = `-- name: GetCategoryByName :one
-SELECT id, name, value_definitions FROM categories
-WHERE name = $1 LIMIT 1
-`
-
-func (q *Queries) GetCategoryByName(ctx context.Context, name string) (Category, error) {
-	row := q.db.QueryRow(ctx, getCategoryByName, name)
-	var i Category
-	err := row.Scan(&i.ID, &i.Name, &i.ValueDefinitions)
-	return i, err
-}
-
-const getPostCategory = `-- name: GetPostCategory :one
-SELECT post_id, category_id, values FROM post_category_values
-WHERE post_id = $1 AND category_id = $2
-`
-
-type GetPostCategoryParams struct {
-	PostID     int64
-	CategoryID int64
-}
-
-func (q *Queries) GetPostCategory(ctx context.Context, arg GetPostCategoryParams) (PostCategoryValue, error) {
-	row := q.db.QueryRow(ctx, getPostCategory, arg.PostID, arg.CategoryID)
-	var i PostCategoryValue
-	err := row.Scan(&i.PostID, &i.CategoryID, &i.Values)
-	return i, err
-}
-
-const getPostsByJSONValue = `-- name: GetPostsByJSONValue :many
-SELECT post_id, values
-FROM post_category_values
-WHERE category_id = $1
-  AND values @? $2::jsonpath
-`
-
-type GetPostsByJSONValueParams struct {
-	CategoryID int64
-	Column2    interface{}
-}
-
-type GetPostsByJSONValueRow struct {
-	PostID int64
-	Values []byte
-}
-
-func (q *Queries) GetPostsByJSONValue(ctx context.Context, arg GetPostsByJSONValueParams) ([]GetPostsByJSONValueRow, error) {
-	rows, err := q.db.Query(ctx, getPostsByJSONValue, arg.CategoryID, arg.Column2)
+func (q *Queries) GetCategVarsForPost(ctx context.Context, postID int64) ([]GetCategVarsForPostRow, error) {
+	rows, err := q.db.Query(ctx, getCategVarsForPost, postID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetPostsByJSONValueRow
+	var items []GetCategVarsForPostRow
 	for rows.Next() {
-		var i GetPostsByJSONValueRow
-		if err := rows.Scan(&i.PostID, &i.Values); err != nil {
+		var i GetCategVarsForPostRow
+		if err := rows.Scan(&i.Category, &i.Values); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -125,35 +74,62 @@ func (q *Queries) GetPostsByJSONValue(ctx context.Context, arg GetPostsByJSONVal
 	return items, nil
 }
 
-const listCategoriesForPost = `-- name: ListCategoriesForPost :many
-SELECT c.id, c.name, c.value_definitions, pcv.values
-FROM categories c
-JOIN post_category_values pcv ON c.id = pcv.category_id
-WHERE pcv.post_id = $1
+const getCategoryByName = `-- name: GetCategoryByName :one
+SELECT name, value_definitions FROM categories
+WHERE name = $1 LIMIT 1
 `
 
-type ListCategoriesForPostRow struct {
-	ID               int64
-	Name             string
-	ValueDefinitions []byte
-	Values           []byte
+func (q *Queries) GetCategoryByName(ctx context.Context, name string) (Category, error) {
+	row := q.db.QueryRow(ctx, getCategoryByName, name)
+	var i Category
+	err := row.Scan(&i.Name, &i.ValueDefinitions)
+	return i, err
 }
 
-func (q *Queries) ListCategoriesForPost(ctx context.Context, postID int64) ([]ListCategoriesForPostRow, error) {
-	rows, err := q.db.Query(ctx, listCategoriesForPost, postID)
+const getPostCategory = `-- name: GetPostCategory :one
+SELECT post_id, category, values FROM post_category_values
+WHERE post_id = $1 AND category = $2
+`
+
+type GetPostCategoryParams struct {
+	PostID   int64
+	Category string
+}
+
+func (q *Queries) GetPostCategory(ctx context.Context, arg GetPostCategoryParams) (PostCategoryValue, error) {
+	row := q.db.QueryRow(ctx, getPostCategory, arg.PostID, arg.Category)
+	var i PostCategoryValue
+	err := row.Scan(&i.PostID, &i.Category, &i.Values)
+	return i, err
+}
+
+const getPostsByJSONValue = `-- name: GetPostsByJSONValue :many
+SELECT post_id, values
+FROM post_category_values
+WHERE category = $1
+  AND values @? $2::jsonpath
+`
+
+type GetPostsByJSONValueParams struct {
+	Category string
+	Column2  interface{}
+}
+
+type GetPostsByJSONValueRow struct {
+	PostID int64
+	Values []byte
+}
+
+func (q *Queries) GetPostsByJSONValue(ctx context.Context, arg GetPostsByJSONValueParams) ([]GetPostsByJSONValueRow, error) {
+	rows, err := q.db.Query(ctx, getPostsByJSONValue, arg.Category, arg.Column2)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListCategoriesForPostRow
+	var items []GetPostsByJSONValueRow
 	for rows.Next() {
-		var i ListCategoriesForPostRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.ValueDefinitions,
-			&i.Values,
-		); err != nil {
+		var i GetPostsByJSONValueRow
+		if err := rows.Scan(&i.PostID, &i.Values); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

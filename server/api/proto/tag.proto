@@ -7,10 +7,25 @@ option go_package = "github.com/MKKL1/schematic-app/server/internal/pkg/genproto
 
 service TagService {
   rpc CreateCategoryVars(CreateCategoryVarsParams) returns (google.protobuf.Empty) {}
+  rpc GetCategVarsByPost(GetCategVarsByPostRequest) returns (CategVarsByPostResponse) {}
 }
 
 message CreateCategoryVarsParams {
   int64 post_id = 1;
-  int64 category_id = 2;
+  string category = 2;
   bytes values = 3;
+}
+
+message GetCategVarsByPostRequest {
+  int64 post_id = 1;
+}
+
+message CategoryVars {
+  int64 post_id = 1;
+  string category = 2;
+  bytes vars = 3;
+}
+
+message CategVarsByPostResponse {
+  repeated CategoryVars items = 1;
 }

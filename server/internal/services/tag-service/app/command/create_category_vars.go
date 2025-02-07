@@ -8,9 +8,9 @@ import (
 )
 
 type CreateCategoryVarsParams struct {
-	PostId     int64
-	CategoryId int64
-	Values     []byte
+	PostId   int64
+	Category string
+	Values   []byte
 }
 
 type CreateCategoryVarsHandler decorator.CommandHandler[CreateCategoryVarsParams, any]
@@ -25,7 +25,7 @@ func NewCreatePostCatValuesHandler(repo category.Repository, provider category.S
 }
 
 func (c createCategoryVarsHandler) Handle(ctx context.Context, params CreateCategoryVarsParams) (any, error) {
-	categoryEntity, err := c.repo.FindCategoryByID(ctx, params.CategoryId)
+	categoryEntity, err := c.repo.FindCategoryByID(ctx, params.Category)
 	if err != nil {
 		return nil, err
 	}

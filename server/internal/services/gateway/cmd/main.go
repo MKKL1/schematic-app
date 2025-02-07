@@ -29,7 +29,8 @@ func main() {
 		user.RegisterRoutes(e, userController)
 
 		postService := client.NewPostClient(ctx, ":8002")
-		postController := post.NewController(postService)
+		tagService := client.NewTagClient(ctx, ":8003")
+		postController := post.NewController(postService, tagService)
 		post.RegisterRoutes(e, postController)
 	}()
 

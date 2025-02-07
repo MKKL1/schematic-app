@@ -5,6 +5,7 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
 	"github.com/MKKL1/schematic-app/server/internal/services/tag-service/app"
 	"github.com/MKKL1/schematic-app/server/internal/services/tag-service/app/command"
+	"github.com/MKKL1/schematic-app/server/internal/services/tag-service/app/query"
 	"github.com/MKKL1/schematic-app/server/internal/services/tag-service/domain/category"
 	"github.com/MKKL1/schematic-app/server/internal/services/tag-service/infra/postgres"
 	"github.com/MKKL1/schematic-app/server/internal/services/tag-service/infra/postgres/db"
@@ -30,6 +31,8 @@ func NewApplication(ctx context.Context) app.Application {
 		Commands: app.Commands{
 			CreateCategoryVars: command.NewCreatePostCatValuesHandler(repo, provider),
 		},
-		Queries: app.Queries{},
+		Queries: app.Queries{
+			GetCategVarsByPost: query.NewGetCategVarsByPost(repo),
+		},
 	}
 }
