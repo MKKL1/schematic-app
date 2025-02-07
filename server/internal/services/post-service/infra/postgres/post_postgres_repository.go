@@ -34,12 +34,11 @@ func (p *PostPostgresRepository) FindById(ctx context.Context, id int64) (post.E
 func (p *PostPostgresRepository) Create(ctx context.Context, model post.Entity) error {
 	params := []db2.CreatePostParams{
 		{
-			ID:            model.ID,
-			Name:          model.Name,
-			Desc:          toText(model.Description),
-			Owner:         model.Owner,
-			AuthorKnown:   toInt(model.AuthorID),
-			AuthorUnknown: toText(model.AuthorName),
+			ID:       model.ID,
+			Name:     model.Name,
+			Desc:     toText(model.Description),
+			Owner:    model.Owner,
+			AuthorID: toInt(model.AuthorID),
 		},
 	}
 
@@ -81,13 +80,9 @@ func toModel(dbPost db2.Post) (post.Entity, error) {
 		desc = &dbPost.Desc.String
 	}
 
-	var authorName *string = nil
-	if dbPost.AuthorUnknown.Valid {
-		authorName = &dbPost.AuthorUnknown.String
-	}
 	var authorId *int64 = nil
-	if dbPost.AuthorKnown.Valid {
-		authorId = &dbPost.AuthorKnown.Int64
+	if dbPost.AuthorID.Valid {
+		authorId = &dbPost.AuthorID.Int64
 	}
 
 	return post.Entity{
@@ -95,7 +90,6 @@ func toModel(dbPost db2.Post) (post.Entity, error) {
 		Name:        dbPost.Name,
 		Description: desc,
 		Owner:       dbPost.Owner,
-		AuthorName:  authorName,
 		AuthorID:    authorId,
 	}, nil
 }

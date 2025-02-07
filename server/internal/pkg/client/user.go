@@ -132,9 +132,12 @@ func NewUsersClient(ctx context.Context, addr string) UserApplication {
 		}
 	}()
 
-	query := UserQueryGrpcService{userServiceClient: genproto.NewUserServiceClient(conn)}
+	service := genproto.NewUserServiceClient(conn)
+	query := UserQueryGrpcService{userServiceClient: service}
+	command := UserCommandGrpcService{userServiceClient: service}
 
 	return UserApplication{
-		Query: query,
+		Query:   query,
+		Command: command,
 	}
 }

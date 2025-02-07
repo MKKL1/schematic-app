@@ -23,15 +23,15 @@ type CreatePostHandler decorator.CommandHandler[CreatePostParams, int64]
 type createPostHandler struct {
 	repo        post.Repository
 	idNode      *snowflake.Node
-	userService client.UserQueryGrpcService
+	userService client.UserApplication
 }
 
-func NewCreatePostHandler(repo post.Repository, idNode *snowflake.Node, userService client.UserQueryGrpcService) CreatePostHandler {
+func NewCreatePostHandler(repo post.Repository, idNode *snowflake.Node, userService client.UserApplication) CreatePostHandler {
 	return createPostHandler{repo, idNode, userService}
 }
 
 func (h createPostHandler) Handle(ctx context.Context, params CreatePostParams) (int64, error) {
-	user, err := h.userService.GetUserBySub(ctx, params.Sub)
+	user, err := h.userService.Query.GetUserBySub(ctx, params.Sub)
 	if err != nil {
 		return 0, err
 	}

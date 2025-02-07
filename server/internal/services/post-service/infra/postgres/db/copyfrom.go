@@ -33,8 +33,7 @@ func (r iteratorForCreatePost) Values() ([]interface{}, error) {
 		r.rows[0].Name,
 		r.rows[0].Desc,
 		r.rows[0].Owner,
-		r.rows[0].AuthorKnown,
-		r.rows[0].AuthorUnknown,
+		r.rows[0].AuthorID,
 	}, nil
 }
 
@@ -43,5 +42,5 @@ func (r iteratorForCreatePost) Err() error {
 }
 
 func (q *Queries) CreatePost(ctx context.Context, arg []CreatePostParams) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"post"}, []string{"id", "name", "desc", "owner", "author_known", "author_unknown"}, &iteratorForCreatePost{rows: arg})
+	return q.db.CopyFrom(ctx, []string{"post"}, []string{"id", "name", "desc", "owner", "author_id"}, &iteratorForCreatePost{rows: arg})
 }

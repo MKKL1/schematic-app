@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
-	"github.com/MKKL1/schematic-app/server/internal/pkg/http/middlewares"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/genproto"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
-	"github.com/MKKL1/schematic-app/server/internal/services/gateway/post"
-	"github.com/MKKL1/schematic-app/server/internal/services/post-service/ports/http"
+	"github.com/MKKL1/schematic-app/server/internal/services/post-service/ports"
+	"google.golang.org/grpc"
 	"os"
 	"os/signal"
 	"time"
@@ -17,25 +17,13 @@ func main() {
 	defer stop()
 
 	go func() {
-		e := server.NewEchoServer()
-		server.RunHttpServer(ctx, e, &server.EchoConfig{
-			Port:     "1324",
-			BasePath: "/",
-			Timeout:  10000,
-			Host:     "localhost",
-		})
-
-		e.HTTPErrorHandler = middlewares.HTTPErrorHandler(post.MapAppError)
-
 		application := NewApplication(ctx)
 
-		//server.RunGRPCServer(ctx, ":8002", func(server *grpc.Server) {
-		//	srv := ports.NewGrpcServer(application)
-		//	genproto.RegisterUserServiceServer(server, srv)
-		//})
+		server.RunGRPCServer(ctx, ":8002", func(server *grpc.Server) {
+			srv := ports.NewGrpcServer(application)
+			genproto.RegisterPostServiceServer(server, srv)
+		})
 
-		postController := http.NewPostController(application)
-		http.RegisterRoutes(e, postController)
 	}()
 
 	<-ctx.Done()

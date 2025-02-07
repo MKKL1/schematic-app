@@ -12,16 +12,15 @@ import (
 )
 
 type CreatePostParams struct {
-	ID            int64
-	Name          string
-	Desc          pgtype.Text
-	Owner         int64
-	AuthorKnown   pgtype.Int8
-	AuthorUnknown pgtype.Text
+	ID       int64
+	Name     string
+	Desc     pgtype.Text
+	Owner    int64
+	AuthorID pgtype.Int8
 }
 
 const getPostById = `-- name: GetPostById :one
-SELECT id, name, "desc", owner, author_known, author_unknown FROM post
+SELECT id, name, "desc", owner, author_id FROM post
 WHERE id = $1
 `
 
@@ -33,8 +32,7 @@ func (q *Queries) GetPostById(ctx context.Context, id int64) (Post, error) {
 		&i.Name,
 		&i.Desc,
 		&i.Owner,
-		&i.AuthorKnown,
-		&i.AuthorUnknown,
+		&i.AuthorID,
 	)
 	return i, err
 }

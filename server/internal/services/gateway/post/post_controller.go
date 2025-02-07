@@ -2,16 +2,16 @@ package post
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/auth"
-	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/command"
-	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/query"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/client"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"strconv"
 )
 
-func RegisterRoutes(e *echo.Echo, server *PostController) {
+func RegisterRoutes(e *echo.Echo, server *Controller) {
 	authMiddleware := auth.GetAuthMiddleware()
 
 	apiGroup := e.Group("/api")
@@ -20,23 +20,23 @@ func RegisterRoutes(e *echo.Echo, server *PostController) {
 	v1Group.POST("/", server.CreatePost, authMiddleware)
 }
 
-type PostController struct {
+type Controller struct {
 	validate *validator.Validate
+	postApp  client.PostApplication
 }
 
-func NewPostController() *PostController {
-	return &PostController{validator.New(validator.WithRequiredStructEnabled())}
+func NewController(postApp client.PostApplication) *Controller {
+	return &Controller{validator.New(validator.WithRequiredStructEnabled()), postApp}
 }
 
-func (pc *PostController) GetPost(c echo.Context) error {
+func (pc *Controller) GetPost(c echo.Context) error {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		return err
 	}
 
 	ctx := context.Background()
-	params := query.GetPostByIdParams{Id: id}
-	postDto, err := pc.application.Queries.GetPostById.Handle(ctx, params)
+	postDto, err := pc.postApp.Query.GetPostById(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func (pc *PostController) GetPost(c echo.Context) error {
 	return c.JSON(http.StatusOK, PostToResponse(postDto))
 }
 
-func (pc *PostController) CreatePost(c echo.Context) error {
+func (pc *Controller) CreatePost(c echo.Context) error {
 	subjectUUID, err := auth.ExtractOidcSub(c)
 	if err != nil {
 		return err
@@ -58,16 +58,35 @@ func (pc *PostController) CreatePost(c echo.Context) error {
 		return err
 	}
 
-	if err := pc.validate.Struct(requestData); err != nil {
+	if err = pc.validate.Struct(requestData); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
 
-	params := command.CreatePostParams{
-		PostCreateRequest: requestData,
-		Sub:               subjectUUID,
+	//Make sure that either name or id is set
+	var authorName *string
+	var authorId *int64
+
+	if requestData.Author != nil {
+		if requestData.Author.ID != nil {
+			_authorId, err2 := strconv.ParseInt(*requestData.Author.ID, 10, 64)
+			if err2 != nil {
+				return err2
+			}
+
+			authorId = &_authorId
+		} else {
+			authorName = requestData.Author.Name
+		}
+	}
+	params := client.CreatePostParams{
+		Name:        requestData.Name,
+		Description: requestData.Description,
+		AuthorName:  authorName,
+		AuthorID:    authorId,
+		Sub:         subjectUUID,
 	}
 
-	id, err := pc.application.Commands.CreatePost.Handle(ctx, params)
+	id, err := pc.postApp.Command.CreatePost(ctx, params)
 	if err != nil {
 		return err
 	}

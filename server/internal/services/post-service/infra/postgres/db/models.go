@@ -15,10 +15,9 @@ type GalleryImage struct {
 }
 
 type Post struct {
-	ID            int64
-	Name          string
-	Desc          pgtype.Text
-	Owner         int64
-	AuthorKnown   pgtype.Int8
-	AuthorUnknown pgtype.Text
+	ID       int64
+	Name     string
+	Desc     pgtype.Text
+	Owner    int64
+	AuthorID pgtype.Int8
 }

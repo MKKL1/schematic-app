@@ -6,7 +6,7 @@ create table post
     name           text not null,
     "desc"         text,
     owner          bigint not null,
-    author_id   BIGINT NOT NULL
+    author_id   BIGINT
 );
 
 create table gallery_image

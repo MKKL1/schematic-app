@@ -1,4 +1,4 @@
-package grpc
+package ports
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/app/query"
 	domainUser "github.com/MKKL1/schematic-app/server/internal/services/user-service/domain/user"
 	"github.com/google/uuid"
-	"google.golang.org/grpc"
 )
 
 type GrpcServer struct {
@@ -47,7 +46,7 @@ func (s GrpcServer) GetUserByName(ctx context.Context, request *genproto.GetUser
 	panic("implement me")
 }
 
-func (s GrpcServer) CreateUser(ctx context.Context, request *genproto.CreateUserRequest, opts ...grpc.CallOption) (*genproto.CreateUserResponse, error) {
+func (s GrpcServer) CreateUser(ctx context.Context, request *genproto.CreateUserRequest) (*genproto.CreateUserResponse, error) {
 	sub, err := uuid.FromBytes(request.GetOidcSub())
 	if err != nil {
 		return nil, err
@@ -59,10 +58,6 @@ func (s GrpcServer) CreateUser(ctx context.Context, request *genproto.CreateUser
 	}
 
 	return &genproto.CreateUserResponse{Id: newId.Unwrap()}, nil
-}
-
-func (s GrpcServer) mustEmbedUnimplementedUserServiceServer() {
-	panic("implement me")
 }
 
 func dtoToProto(userDto domainUser.User) (*genproto.User, error) {
