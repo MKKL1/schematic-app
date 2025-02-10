@@ -36,7 +36,7 @@ func main() {
 		//	log.Err(err).Msg("Error creating category vars")
 		//}
 
-		server.RunGRPCServer(ctx, ":8003", func(server *grpc.Server) {
+		server.RunGRPCServer(ctx, ":8003", ports.ErrorMapper, func(server *grpc.Server) {
 			srv := ports.NewGrpcServer(application)
 			genproto.RegisterTagServiceServer(server, srv)
 		})

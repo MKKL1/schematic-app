@@ -5,6 +5,7 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/pkg/client"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
 	"github.com/MKKL1/schematic-app/server/internal/services/gateway/http"
+	"github.com/MKKL1/schematic-app/server/internal/services/gateway/post"
 	"github.com/MKKL1/schematic-app/server/internal/services/gateway/user"
 	"os"
 	"os/signal"
@@ -28,12 +29,14 @@ func main() {
 		userService := client.NewUsersClient(ctx, ":8001")
 		userController := user.NewController(userService)
 		user.RegisterRoutes(e, userController)
-		user.RegisterErrorMappers()
 
-		//postService := client.NewPostClient(ctx, ":8002")
-		//tagService := client.NewTagClient(ctx, ":8003")
-		//postController := post.NewController(postService, tagService)
-		//post.RegisterRoutes(e, postController)
+		postService := client.NewPostClient(ctx, ":8002")
+		tagService := client.NewTagClient(ctx, ":8003")
+		postController := post.NewController(postService, tagService)
+		post.RegisterRoutes(e, postController)
+
+		user.RegisterErrorMappers()
+		post.RegisterErrorMappers()
 	}()
 
 	<-ctx.Done()

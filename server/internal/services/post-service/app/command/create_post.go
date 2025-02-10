@@ -2,9 +2,9 @@ package command
 
 import (
 	"context"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/apperr"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/client"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
-	appErr "github.com/MKKL1/schematic-app/server/internal/pkg/error"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
 	"github.com/bwmarrin/snowflake"
 	"github.com/google/uuid"
@@ -48,7 +48,7 @@ func (h createPostHandler) Handle(ctx context.Context, params CreatePostParams) 
 
 	err = h.repo.Create(ctx, newPost)
 	if err != nil {
-		return 0, appErr.WrapErrorf(err, appErr.ErrorCodeUnknown, "repo.Create")
+		return 0, apperr.WrapErrorf(err, apperr.ErrorCodeUnknown, "repo.Create")
 	}
 
 	return newPost.ID, nil

@@ -4,7 +4,6 @@ go 1.23
 
 require (
 	github.com/MKKL1/schematic-app/server/internal/pkg v0.0.0-20250207210816-22c4cf8bb897
-	github.com/MKKL1/schematic-app/server/internal/services/post-service v0.0.0-20250207210816-22c4cf8bb897
 	github.com/MKKL1/schematic-app/server/internal/services/user-service v0.0.0-20250207210816-22c4cf8bb897
 	github.com/go-playground/validator/v10 v10.24.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.1
