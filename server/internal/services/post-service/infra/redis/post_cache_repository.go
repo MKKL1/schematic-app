@@ -6,7 +6,7 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/pkg/rueidisaside"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
 	postProto "github.com/MKKL1/schematic-app/server/internal/services/post-service/infra/proto"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	"time"
 )
 

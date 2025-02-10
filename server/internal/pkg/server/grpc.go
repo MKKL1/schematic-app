@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	grpc2 "github.com/MKKL1/schematic-app/server/internal/pkg/grpc"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -30,7 +31,7 @@ func InterceptorLogger(l zerolog.Logger) logging.Logger {
 	})
 }
 
-func RunGRPCServer(ctx context.Context, addr string, registerServer func(server *grpc.Server)) {
+func RunGRPCServer(ctx context.Context, addr string, errorMapper grpc2.ErrorMapper, registerServer func(server *grpc.Server)) {
 	logger := zerolog.New(os.Stdout).With().Logger()
 	opts := []logging.Option{
 		logging.WithLogOnEvents(logging.StartCall, logging.FinishCall),
@@ -39,6 +40,7 @@ func RunGRPCServer(ctx context.Context, addr string, registerServer func(server 
 
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
+			grpc2.ErrorMappingUnaryInterceptor(errorMapper),
 			logging.UnaryServerInterceptor(InterceptorLogger(logger), opts...),
 		),
 		grpc.ChainStreamInterceptor(

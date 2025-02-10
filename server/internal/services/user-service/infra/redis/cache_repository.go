@@ -7,8 +7,8 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/domain/user"
 	protoModel "github.com/MKKL1/schematic-app/server/internal/services/user-service/infra/proto"
 	"github.com/dgraph-io/ristretto/v2"
-	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
+	"google.golang.org/protobuf/proto"
 	"time"
 )
 

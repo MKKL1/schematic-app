@@ -3,9 +3,9 @@ package command
 import (
 	"context"
 	"errors"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/apperr"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/db"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
-	appErr "github.com/MKKL1/schematic-app/server/internal/pkg/error"
-	"github.com/MKKL1/schematic-app/server/internal/pkg/error/db"
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/domain/user"
 	"github.com/bwmarrin/snowflake"
 	"github.com/google/uuid"
@@ -40,12 +40,12 @@ func (h createUserHandler) Handle(ctx context.Context, params CreateUserParams) 
 		if errors.As(err, &e) {
 			switch e.Field {
 			case "OidcSub":
-				return 0, appErr.WrapErrorf(err, user.ErrCodeSubConflict, "repo.CreateUser")
+				return 0, apperr.WrapErrorf(err, user.ErrorCodeSubConflict, "repo.CreateUser: conflicting OidcSub: %s", params.Sub.String())
 			case "Name":
-				return 0, appErr.WrapErrorf(err, user.ErrCodeNameConflict, "repo.CreateUser")
+				return 0, apperr.WrapErrorf(err, user.ErrorCodeNameConflict, "repo.CreateUser: conflicting Name: %s", params.Username)
 			}
 		}
-		return 0, appErr.WrapErrorf(err, appErr.ErrorCodeUnknown, "repo.CreateUser")
+		return 0, apperr.WrapErrorf(err, apperr.ErrorCodeUnknown, "repo.CreateUser")
 	}
 
 	return user.ID(newUser.ID), nil

@@ -3,7 +3,7 @@ package postgres
 import (
 	"context"
 	"errors"
-	errorDB "github.com/MKKL1/schematic-app/server/internal/pkg/error/db"
+	errorDB "github.com/MKKL1/schematic-app/server/internal/pkg/db"
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/domain/user"
 	db2 "github.com/MKKL1/schematic-app/server/internal/services/user-service/infra/postgres/db"
 	"github.com/google/uuid"
