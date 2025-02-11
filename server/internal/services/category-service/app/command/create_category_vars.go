@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
-	"github.com/MKKL1/schematic-app/server/internal/services/tag-service/domain/category"
+	"github.com/MKKL1/schematic-app/server/internal/services/category-service/domain/category"
 )
 
 type CreateCategoryVarsParams struct {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/genproto"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
-	"github.com/MKKL1/schematic-app/server/internal/services/tag-service/ports"
+	"github.com/MKKL1/schematic-app/server/internal/services/category-service/ports"
 	"google.golang.org/grpc"
 	"os"
 	"os/signal"
@@ -38,7 +38,7 @@ func main() {
 
 		server.RunGRPCServer(ctx, ":8003", ports.ErrorMapper, func(server *grpc.Server) {
 			srv := ports.NewGrpcServer(application)
-			genproto.RegisterTagServiceServer(server, srv)
+			genproto.RegisterCategoryServiceServer(server, srv)
 		})
 
 		//postController := http.NewPostController(application)

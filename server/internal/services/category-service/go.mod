@@ -1,4 +1,4 @@
-module github.com/MKKL1/schematic-app/server/internal/services/tag-service
+module github.com/MKKL1/schematic-app/server/internal/services/category-service
 
 go 1.23.6
 

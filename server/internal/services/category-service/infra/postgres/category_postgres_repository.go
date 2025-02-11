@@ -2,8 +2,8 @@ package postgres
 
 import (
 	"context"
-	"github.com/MKKL1/schematic-app/server/internal/services/tag-service/domain/category"
-	"github.com/MKKL1/schematic-app/server/internal/services/tag-service/infra/postgres/db"
+	"github.com/MKKL1/schematic-app/server/internal/services/category-service/domain/category"
+	"github.com/MKKL1/schematic-app/server/internal/services/category-service/infra/postgres/db"
 )
 
 type CategoryPostgresRepository struct {

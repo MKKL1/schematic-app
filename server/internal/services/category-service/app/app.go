@@ -1,8 +1,8 @@
 package app
 
 import (
-	"github.com/MKKL1/schematic-app/server/internal/services/tag-service/app/command"
-	"github.com/MKKL1/schematic-app/server/internal/services/tag-service/app/query"
+	"github.com/MKKL1/schematic-app/server/internal/services/category-service/app/command"
+	"github.com/MKKL1/schematic-app/server/internal/services/category-service/app/query"
 )
 
 type Application struct {

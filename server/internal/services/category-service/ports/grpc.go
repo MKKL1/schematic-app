@@ -4,8 +4,8 @@ import (
 	"context"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/apperr"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/genproto"
-	"github.com/MKKL1/schematic-app/server/internal/services/tag-service/app"
-	"github.com/MKKL1/schematic-app/server/internal/services/tag-service/app/command"
+	"github.com/MKKL1/schematic-app/server/internal/services/category-service/app"
+	"github.com/MKKL1/schematic-app/server/internal/services/category-service/app/command"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -13,7 +13,7 @@ import (
 )
 
 type GrpcServer struct {
-	genproto.UnimplementedTagServiceServer
+	genproto.UnimplementedCategoryServiceServer
 	app app.Application
 }
 

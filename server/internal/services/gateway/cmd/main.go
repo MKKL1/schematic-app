@@ -31,8 +31,8 @@ func main() {
 		user.RegisterRoutes(e, userController)
 
 		postService := client.NewPostClient(ctx, ":8002")
-		tagService := client.NewTagClient(ctx, ":8003")
-		postController := post.NewController(postService, tagService)
+		categService := client.NewCategoryClient(ctx, ":8003")
+		postController := post.NewController(postService, categService)
 		post.RegisterRoutes(e, postController)
 
 		user.RegisterErrorMappers()

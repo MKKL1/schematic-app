@@ -5,7 +5,7 @@ package proto;
 
 option go_package = "github.com/MKKL1/schematic-app/server/internal/pkg/genproto";
 
-service TagService {
+service CategoryService {
   rpc CreateCategoryVars(CreateCategoryVarsParams) returns (google.protobuf.Empty) {}
   rpc GetCategVarsByPost(GetCategVarsByPostRequest) returns (CategVarsByPostResponse) {}
 }

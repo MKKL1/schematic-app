@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
-	"github.com/MKKL1/schematic-app/server/internal/services/tag-service/app"
-	"github.com/MKKL1/schematic-app/server/internal/services/tag-service/app/command"
-	"github.com/MKKL1/schematic-app/server/internal/services/tag-service/app/query"
-	"github.com/MKKL1/schematic-app/server/internal/services/tag-service/domain/category"
-	"github.com/MKKL1/schematic-app/server/internal/services/tag-service/infra/postgres"
-	"github.com/MKKL1/schematic-app/server/internal/services/tag-service/infra/postgres/db"
+	"github.com/MKKL1/schematic-app/server/internal/services/category-service/app"
+	"github.com/MKKL1/schematic-app/server/internal/services/category-service/app/command"
+	"github.com/MKKL1/schematic-app/server/internal/services/category-service/app/query"
+	"github.com/MKKL1/schematic-app/server/internal/services/category-service/domain/category"
+	"github.com/MKKL1/schematic-app/server/internal/services/category-service/infra/postgres"
+	"github.com/MKKL1/schematic-app/server/internal/services/category-service/infra/postgres/db"
 )
 
 func NewApplication(ctx context.Context) app.Application {

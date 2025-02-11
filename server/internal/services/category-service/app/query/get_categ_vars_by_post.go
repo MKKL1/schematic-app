@@ -3,7 +3,7 @@ package query
 import (
 	"context"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
-	"github.com/MKKL1/schematic-app/server/internal/services/tag-service/domain/category"
+	"github.com/MKKL1/schematic-app/server/internal/services/category-service/domain/category"
 )
 
 type GetCategVarsByPostHandler decorator.QueryHandler[int64, []category.PostCategoryVars]

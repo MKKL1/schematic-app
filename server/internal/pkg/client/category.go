@@ -18,28 +18,28 @@ type CreateCategoryVarsParams struct {
 	Values   []byte
 }
 
-type TagApplication struct {
-	Command TagCommandService
-	Query   TagQueryService
+type CategoryApplication struct {
+	Command CategoryCommandService
+	Query   CategoryQueryService
 }
 
-type TagCommandService interface {
+type CategoryCommandService interface {
 	CreateCategoryVars(ctx context.Context, params CreateCategoryVarsParams) error
 }
 
-type TagQueryService interface {
+type CategoryQueryService interface {
 	GetCategVarsByPost(ctx context.Context, id int64) ([]PostCategoryVars, error)
 }
 
-type TagCommandGrpcService struct {
-	grpcClient genproto.TagServiceClient
+type CategoryCommandGrpcService struct {
+	grpcClient genproto.CategoryServiceClient
 }
 
-type TagQueryGrpcService struct {
-	grpcClient genproto.TagServiceClient
+type CategoryQueryGrpcService struct {
+	grpcClient genproto.CategoryServiceClient
 }
 
-func (t TagCommandGrpcService) CreateCategoryVars(ctx context.Context, params CreateCategoryVarsParams) error {
+func (t CategoryCommandGrpcService) CreateCategoryVars(ctx context.Context, params CreateCategoryVarsParams) error {
 	_, err := t.grpcClient.CreateCategoryVars(context.Background(), &genproto.CreateCategoryVarsParams{
 		PostId:   params.PostId,
 		Category: params.Category,
@@ -48,7 +48,7 @@ func (t TagCommandGrpcService) CreateCategoryVars(ctx context.Context, params Cr
 	return err
 }
 
-func (t TagQueryGrpcService) GetCategVarsByPost(ctx context.Context, id int64) ([]PostCategoryVars, error) {
+func (t CategoryQueryGrpcService) GetCategVarsByPost(ctx context.Context, id int64) ([]PostCategoryVars, error) {
 	vars, err := t.grpcClient.GetCategVarsByPost(ctx, &genproto.GetCategVarsByPostRequest{
 		PostId: id,
 	})
@@ -68,18 +68,18 @@ func (t TagQueryGrpcService) GetCategVarsByPost(ctx context.Context, id int64) (
 	return dtoVars, nil
 }
 
-func NewTagClient(ctx context.Context, addr string) TagApplication {
+func NewCategoryClient(ctx context.Context, addr string) CategoryApplication {
 	conn := NewConnection(ctx, addr)
 
-	service := genproto.NewTagServiceClient(conn)
-	query := TagQueryGrpcService{
+	service := genproto.NewCategoryServiceClient(conn)
+	query := CategoryQueryGrpcService{
 		grpcClient: service,
 	}
-	command := TagCommandGrpcService{
+	command := CategoryCommandGrpcService{
 		grpcClient: service,
 	}
 
-	return TagApplication{
+	return CategoryApplication{
 		Query:   query,
 		Command: command,
 	}
