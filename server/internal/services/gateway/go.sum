@@ -1,7 +1,7 @@
-github.com/MKKL1/schematic-app/server/internal/pkg v0.0.0-20250207210816-22c4cf8bb897 h1:2bLBue5aStEvo9pbW/QUrU5hQ+P2pDFix3V8ECjpsWY=
-github.com/MKKL1/schematic-app/server/internal/pkg v0.0.0-20250207210816-22c4cf8bb897/go.mod h1:vU0pqNa3mhXZGeJL8xEw6KXmEltGwWSOE24dFUyBLxQ=
-github.com/MKKL1/schematic-app/server/internal/services/user-service v0.0.0-20250207210816-22c4cf8bb897 h1:a8ES5NntjZhepBQgYntHO1nqF5o9j3sDOUISnjOO84c=
-github.com/MKKL1/schematic-app/server/internal/services/user-service v0.0.0-20250207210816-22c4cf8bb897/go.mod h1:kS07NUDg71t4xURC+VvWkAp5LSMZ9XJN4j1Yfkhwz+o=
+github.com/MKKL1/schematic-app/server/internal/pkg v0.0.0-20250210204454-a4945dd43a5f h1:Cv0t4Q/Seo9jCPzdP/ksimzv1Q0WEB8OQLfoJdoBqhc=
+github.com/MKKL1/schematic-app/server/internal/pkg v0.0.0-20250210204454-a4945dd43a5f/go.mod h1:vU0pqNa3mhXZGeJL8xEw6KXmEltGwWSOE24dFUyBLxQ=
+github.com/MKKL1/schematic-app/server/internal/services/user-service v0.0.0-20250210204454-a4945dd43a5f h1:Ms0J3/KMwmFF+rr2xRDPQlVcQYe+Cq7W/49TmnxGemo=
+github.com/MKKL1/schematic-app/server/internal/services/user-service v0.0.0-20250210204454-a4945dd43a5f/go.mod h1:dGCzaAhlwm4aakxZObGlesmDkUVRvo6oj8yN5eyC1PM=
 github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=

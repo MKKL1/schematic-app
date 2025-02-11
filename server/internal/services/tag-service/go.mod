@@ -1,9 +1,9 @@
 module github.com/MKKL1/schematic-app/server/internal/services/tag-service
 
-go 1.23
+go 1.23.6
 
 require (
-	github.com/MKKL1/schematic-app/server/internal/pkg v0.0.0-20250210151653-42edf14278d2
+	github.com/MKKL1/schematic-app/server/internal/pkg v0.0.0-20250210204454-a4945dd43a5f
 	github.com/jackc/pgx/v5 v5.7.2
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250207221924-e9438ea467c6
 	google.golang.org/grpc v1.70.0
@@ -23,8 +23,8 @@ require (
 	github.com/rs/zerolog v1.33.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
-	golang.org/x/crypto v0.31.0 // indirect
-	golang.org/x/net v0.33.0 // indirect
+	golang.org/x/crypto v0.32.0 // indirect
+	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect

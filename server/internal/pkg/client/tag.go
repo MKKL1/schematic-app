@@ -4,9 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/genproto"
-	"github.com/rs/zerolog/log"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 type PostCategoryVars struct {
@@ -72,26 +69,7 @@ func (t TagQueryGrpcService) GetCategVarsByPost(ctx context.Context, id int64) (
 }
 
 func NewTagClient(ctx context.Context, addr string) TagApplication {
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		panic(err)
-	}
-
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				log.Info().Str("addr", addr).Msg("shutting down gRPC server")
-				err := conn.Close()
-				if err != nil {
-					log.Error().Str("addr", addr).Err(err).Msg("failed to close gRPC connection")
-					return
-				}
-				log.Info().Msg("server shut down")
-				return
-			}
-		}
-	}()
+	conn := NewConnection(ctx, addr)
 
 	service := genproto.NewTagServiceClient(conn)
 	query := TagQueryGrpcService{
