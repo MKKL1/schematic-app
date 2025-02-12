@@ -20,3 +20,27 @@ create table gallery_image
     "desc"   text
 );
 
+create table categories (
+    name text primary key,
+    metadata_schema jsonb not null
+);
+
+CREATE TABLE post_category_metadata (
+    post_id bigint not null references post(id) on delete cascade,
+    category text not null references categories(name) on delete cascade,
+    metadata jsonb not null,
+    primary key (post_id, category)
+);
+
+create index idx_all_values_search on post_category_metadata
+    using GIN (metadata jsonb_path_ops);
+
+create index idx_category_lookup on post_category_metadata (category);
+
+create table post_tags (
+    post_id bigint not null ,
+    tag text not null ,
+    primary key (post_id, tag)
+);
+
+create index idx_post_tags_tag on post_tags(tag);

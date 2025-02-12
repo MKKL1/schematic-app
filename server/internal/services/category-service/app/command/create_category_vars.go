@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
 	"github.com/MKKL1/schematic-app/server/internal/services/category-service/domain/category"
+	category2 "github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/category"
 )
 
 type CreateCategoryVarsParams struct {
@@ -17,10 +18,10 @@ type CreateCategoryVarsHandler decorator.CommandHandler[CreateCategoryVarsParams
 
 type createCategoryVarsHandler struct {
 	repo     category.Repository
-	provider category.SchemaProvider
+	provider category2.SchemaProvider
 }
 
-func NewCreatePostCatValuesHandler(repo category.Repository, provider category.SchemaProvider) CreateCategoryVarsHandler {
+func NewCreatePostCatValuesHandler(repo category.Repository, provider category2.SchemaProvider) CreateCategoryVarsHandler {
 	return createCategoryVarsHandler{repo, provider}
 }
 

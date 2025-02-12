@@ -117,19 +117,19 @@ func toFloat64(v interface{}) (float64, error) {
 	}
 }
 
-// ValueSchema maps a property name to its Validator.
-type ValueSchema map[string]Validator
+// ValueSchemaValidator maps a property name to its Validator.
+type ValueSchemaValidator map[string]Validator
 
-// CompileSchema compiles the raw JSON schema (from the DB) into a ValueSchema.
+// CompileSchema compiles the raw JSON schema (from the DB) into a ValueSchemaValidator.
 // It uses the "type" field and the flexible Options map to instantiate validators.
-func CompileSchema(rawSchema []byte) (ValueSchema, error) {
+func CompileSchema(rawSchema MetadataSchema) (ValueSchemaValidator, error) {
 	// Unmarshal into a map of property name to RawPropertySchema.
 	var rawMap map[string]RawPropertySchema
 	if err := json.Unmarshal(rawSchema, &rawMap); err != nil {
 		return nil, err
 	}
 
-	compiled := make(ValueSchema)
+	compiled := make(ValueSchemaValidator)
 	for key, rawProp := range rawMap {
 		switch rawProp.Type {
 		case "boolean":
@@ -174,7 +174,7 @@ func CompileSchema(rawSchema []byte) (ValueSchema, error) {
 }
 
 // ValidateData uses the compiled schema to check the provided data.
-func (vs ValueSchema) ValidateData(data map[string]interface{}) error {
+func (vs ValueSchemaValidator) ValidateData(data map[string]interface{}) error {
 	for key, validator := range vs {
 		value, exists := data[key]
 		if !exists {

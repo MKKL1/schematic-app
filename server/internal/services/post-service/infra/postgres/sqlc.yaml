@@ -7,3 +7,18 @@ sql:
       go:
         out: "db"
         sql_package: "pgx/v5"
+        overrides:
+          - db_type: "uuid"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - db_type: "text"
+            go_type:
+              type: 'string'
+              pointer: true
+            nullable: true
+          - db_type: "pg_catalog.int8"
+            go_type:
+              type: 'int64'
+              pointer: true
+            nullable: true

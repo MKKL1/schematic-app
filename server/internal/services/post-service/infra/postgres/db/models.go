@@ -4,20 +4,32 @@
 
 package db
 
-import (
-	"github.com/jackc/pgx/v5/pgtype"
-)
+type Category struct {
+	Name           string
+	MetadataSchema []byte
+}
 
 type GalleryImage struct {
 	ImageID int64
-	PostID  pgtype.Int8
-	Desc    pgtype.Text
+	PostID  *int64
+	Desc    *string
 }
 
 type Post struct {
 	ID       int64
 	Name     string
-	Desc     pgtype.Text
+	Desc     *string
 	Owner    int64
-	AuthorID pgtype.Int8
+	AuthorID *int64
+}
+
+type PostCategoryMetadatum struct {
+	PostID   int64
+	Category string
+	Metadata []byte
+}
+
+type PostTag struct {
+	PostID int64
+	Tag    string
 }

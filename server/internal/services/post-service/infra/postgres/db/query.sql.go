@@ -7,32 +7,101 @@ package db
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type CreatePostParams struct {
-	ID       int64
-	Name     string
-	Desc     pgtype.Text
-	Owner    int64
-	AuthorID pgtype.Int8
-}
-
-const getPostById = `-- name: GetPostById :one
-SELECT id, name, "desc", owner, author_id FROM post
-WHERE id = $1
+const createPost = `-- name: CreatePost :exec
+WITH new_post AS (
+    INSERT INTO post (name, "desc", owner, author_id)
+    VALUES ($1, $2, $3, $4)
+    RETURNING id
+),
+insert_tags AS (
+    INSERT INTO post_tags (post_id, tag)
+    SELECT np.id, t
+    FROM new_post np, unnest($5::text[]) AS t
+),
+insert_category AS (
+    INSERT INTO post_category_metadata (post_id, category, metadata)
+    SELECT np.id, pair.category, pair.metadata
+    FROM new_post np, unnest($6::category_metadata_pair[]) AS pair
+)
+SELECT id FROM new_post
 `
 
-func (q *Queries) GetPostById(ctx context.Context, id int64) (Post, error) {
-	row := q.db.QueryRow(ctx, getPostById, id)
-	var i Post
+type CreatePostParams struct {
+	Name     string
+	Desc     *string
+	Owner    int64
+	AuthorID *int64
+	Column5  []string
+	Column6  []interface{}
+}
+
+func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) error {
+	_, err := q.db.Exec(ctx, createPost,
+		arg.Name,
+		arg.Desc,
+		arg.Owner,
+		arg.AuthorID,
+		arg.Column5,
+		arg.Column6,
+	)
+	return err
+}
+
+const getPost = `-- name: GetPost :one
+SELECT
+    p.id,
+    p.name,
+    p."desc" AS description,
+    p.owner,
+    p.author_id,
+    COALESCE(
+            (
+                SELECT json_agg(
+                               json_build_object(
+                                       'categoryName', pcm.category,
+                                       'metadata', pcm.metadata
+                               )
+                       )
+                FROM post_category_metadata pcm
+                WHERE pcm.post_id = p.id
+            ),
+            '[]'::json
+    ) AS category_vars,
+    COALESCE(
+            (
+                SELECT array_agg(pt.tag)
+                FROM post_tags pt
+                WHERE pt.post_id = p.id
+            ),
+            ARRAY[]::text[]
+    ) AS tags
+FROM post p
+WHERE p.id = $1
+`
+
+type GetPostRow struct {
+	ID           int64
+	Name         string
+	Description  *string
+	Owner        int64
+	AuthorID     *int64
+	CategoryVars interface{}
+	Tags         interface{}
+}
+
+func (q *Queries) GetPost(ctx context.Context, id int64) (GetPostRow, error) {
+	row := q.db.QueryRow(ctx, getPost, id)
+	var i GetPostRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.Desc,
+		&i.Description,
 		&i.Owner,
 		&i.AuthorID,
+		&i.CategoryVars,
+		&i.Tags,
 	)
 	return i, err
 }

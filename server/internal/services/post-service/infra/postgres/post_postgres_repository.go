@@ -2,94 +2,71 @@ package postgres
 
 import (
 	"context"
-	"errors"
-	errorDB "github.com/MKKL1/schematic-app/server/internal/pkg/db"
+	"encoding/json"
+	"fmt"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
-	db2 "github.com/MKKL1/schematic-app/server/internal/services/post-service/infra/postgres/db"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/MKKL1/schematic-app/server/internal/services/post-service/infra/postgres/db"
 )
 
 type PostPostgresRepository struct {
-	queries *db2.Queries
+	queries db.Queries
 }
 
-func NewPostPostgresRepository(queries *db2.Queries) *PostPostgresRepository {
-	if queries == nil {
-		panic("queries cannot be nil")
-	}
+func NewPostPostgresRepository(queries db.Queries) *PostPostgresRepository {
 	return &PostPostgresRepository{queries}
 }
 
-func (p *PostPostgresRepository) FindById(ctx context.Context, id int64) (post.Entity, error) {
-	out, err := p.queries.GetPostById(ctx, id)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return post.Entity{}, errorDB.ErrNoRows
-	} else if err != nil {
+func (p PostPostgresRepository) FindById(ctx context.Context, id int64) (post.Entity, error) {
+	row, err := p.queries.GetPost(ctx, id)
+	if err != nil {
 		return post.Entity{}, err
 	}
-	return toModel(out)
-}
 
-func (p *PostPostgresRepository) Create(ctx context.Context, model post.Entity) error {
-	params := []db2.CreatePostParams{
-		{
-			ID:       model.ID,
-			Name:     model.Name,
-			Desc:     toText(model.Description),
-			Owner:    model.Owner,
-			AuthorID: toInt(model.AuthorID),
-		},
-	}
-
-	_, err := p.queries.CreatePost(ctx, params)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func toText(str *string) pgtype.Text {
-	if str == nil {
-		return pgtype.Text{
-			Valid: false,
+	var categoryVars []post.CategoryVarsEntity
+	if row.CategoryVars != nil {
+		data, ok := row.CategoryVars.([]byte)
+		if !ok {
+			return post.Entity{}, fmt.Errorf("invalid type for CategoryVars")
+		}
+		if err := json.Unmarshal(data, &categoryVars); err != nil {
+			return post.Entity{}, fmt.Errorf("failed to unmarshal CategoryVars: %w", err)
 		}
 	}
-	return pgtype.Text{
-		String: *str,
-		Valid:  true,
-	}
-}
 
-func toInt(val *int64) pgtype.Int8 {
-	if val == nil {
-		return pgtype.Int8{
-			Valid: false,
+	var tags []string
+	if row.Tags != nil {
+		tagArray, ok := row.Tags.([]interface{})
+		if !ok {
+			return post.Entity{}, fmt.Errorf("invalid type for Tags")
+		}
+		for _, tag := range tagArray {
+			if str, ok := tag.(string); ok {
+				tags = append(tags, str)
+			} else {
+				return post.Entity{}, fmt.Errorf("invalid tag type: expected string, got %T", tag)
+			}
 		}
 	}
-	return pgtype.Int8{
-		Int64: *val,
-		Valid: true,
+
+	postEntity := post.Entity{
+		ID:           row.ID,
+		Name:         row.Name,
+		Description:  row.Description,
+		Owner:        row.Owner,
+		AuthorID:     row.AuthorID,
+		CategoryVars: categoryVars,
+		Tags:         tags,
 	}
+
+	return postEntity, nil
 }
 
-func toModel(dbPost db2.Post) (post.Entity, error) {
-	var desc *string = nil
-	if dbPost.Desc.Valid {
-		desc = &dbPost.Desc.String
-	}
+func (p PostPostgresRepository) Create(ctx context.Context, model post.Entity) error {
+	//TODO implement me
+	panic("implement me")
+}
 
-	var authorId *int64 = nil
-	if dbPost.AuthorID.Valid {
-		authorId = &dbPost.AuthorID.Int64
-	}
-
-	return post.Entity{
-		ID:          dbPost.ID,
-		Name:        dbPost.Name,
-		Description: desc,
-		Owner:       dbPost.Owner,
-		AuthorID:    authorId,
-	}, nil
+func (p PostPostgresRepository) GetCountForTag(ctx context.Context, tag string) (int64, error) {
+	//TODO implement me
+	panic("implement me")
 }
