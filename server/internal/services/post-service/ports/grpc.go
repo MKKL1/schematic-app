@@ -7,9 +7,9 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/command"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/query"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
+	"github.com/bytedance/sonic"
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 type GrpcServer struct {
@@ -36,12 +36,24 @@ func (g GrpcServer) CreatePost(ctx context.Context, request *genproto.CreatePost
 		return nil, err
 	}
 
+	var categMetadataList []command.CategoryMetadataParams
+	err = sonic.Unmarshal(request.Categories, &categMetadataList)
+	if err != nil {
+		return nil, err
+	}
+
+	tags := make([]string, len(request.Tags))
+	for i, tag := range request.Tags {
+		tags[i] = tag.Tag
+	}
+
 	createdId, err := g.app.Commands.CreatePost.Handle(ctx, command.CreatePostParams{
-		Name:        request.GetName(),
+		Name:        request.Name,
 		Description: request.Description,
-		AuthorName:  request.AuthorName,
 		AuthorID:    request.AuthorId,
 		Sub:         sub,
+		Categories:  categMetadataList,
+		Tags:        tags,
 	})
 	if err != nil {
 		return nil, err
@@ -64,10 +76,11 @@ func dtoToProto(dto post.Post) *genproto.Post {
 		p.Author = proto.Int64(*dto.AuthorID)
 	}
 
-	p.Vars = &anypb.Any{
-		TypeUrl: "CategoryVars",
-		Value:   dto.CategoryVars,
+	categ, err := sonic.Marshal(dto.CategoryVars)
+	if err != nil {
+		return nil
 	}
+	p.Categories = categ
 
 	p.Tags = make([]*genproto.Tag, len(dto.Tags))
 	for i, t := range dto.Tags {
