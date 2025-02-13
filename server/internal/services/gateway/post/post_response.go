@@ -13,6 +13,7 @@ type PostResponse struct {
 	Owner       string               `json:"owner"`
 	AuthorID    *string              `json:"author"`
 	Categories  []CategoriesResponse `json:"categories"`
+	Tags        []string             `json:"tags"`
 }
 
 type CategoriesResponse struct {
@@ -20,16 +21,21 @@ type CategoriesResponse struct {
 	Vars json.RawMessage `json:"vars"`
 }
 
-func PostToResponse(post client.Post, vars []client.PostCategoryVars) PostResponse {
+func PostToResponse(post client.Post) PostResponse {
 	var authorID *string
 	if post.AuthorID != nil {
 		aInt := strconv.FormatInt(*post.AuthorID, 10)
 		authorID = &aInt
 	}
 
-	categories := make([]CategoriesResponse, len(vars))
-	for i, v := range vars {
+	categories := make([]CategoriesResponse, len(post.Vars))
+	for i, v := range post.Vars {
 		categories[i] = CategoryToResponse(v)
+	}
+
+	tags := make([]string, len(post.Tags))
+	for i, v := range post.Tags {
+		tags[i] = v
 	}
 
 	return PostResponse{
@@ -39,6 +45,7 @@ func PostToResponse(post client.Post, vars []client.PostCategoryVars) PostRespon
 		Owner:       strconv.FormatInt(post.Owner, 10),
 		AuthorID:    authorID,
 		Categories:  categories,
+		Tags:        tags,
 	}
 }
 

@@ -9,10 +9,10 @@ import (
 )
 
 type PostPostgresRepository struct {
-	queries db.Queries
+	queries *db.Queries
 }
 
-func NewPostPostgresRepository(queries db.Queries) *PostPostgresRepository {
+func NewPostPostgresRepository(queries *db.Queries) *PostPostgresRepository {
 	return &PostPostgresRepository{queries}
 }
 
@@ -24,11 +24,7 @@ func (p PostPostgresRepository) FindById(ctx context.Context, id int64) (post.En
 
 	var categoryVars []post.CategoryVarsEntity
 	if row.CategoryVars != nil {
-		data, ok := row.CategoryVars.([]byte)
-		if !ok {
-			return post.Entity{}, fmt.Errorf("invalid type for CategoryVars")
-		}
-		if err := json.Unmarshal(data, &categoryVars); err != nil {
+		if err := json.Unmarshal(row.CategoryVars, &categoryVars); err != nil {
 			return post.Entity{}, fmt.Errorf("failed to unmarshal CategoryVars: %w", err)
 		}
 	}

@@ -21,13 +21,12 @@ func RegisterRoutes(e *echo.Echo, server *Controller) {
 }
 
 type Controller struct {
-	validate    *validator.Validate
-	postApp     client.PostApplication
-	categoryApp client.CategoryApplication
+	validate *validator.Validate
+	postApp  client.PostApplication
 }
 
-func NewController(postApp client.PostApplication, tagApp client.CategoryApplication) *Controller {
-	return &Controller{validator.New(validator.WithRequiredStructEnabled()), postApp, tagApp}
+func NewController(postApp client.PostApplication) *Controller {
+	return &Controller{validator.New(validator.WithRequiredStructEnabled()), postApp}
 }
 
 func (pc *Controller) GetPost(c echo.Context) error {
@@ -42,12 +41,7 @@ func (pc *Controller) GetPost(c echo.Context) error {
 		return err
 	}
 
-	vars, err := pc.categoryApp.Query.GetCategVarsByPost(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	return c.JSON(http.StatusOK, PostToResponse(postDto, vars))
+	return c.JSON(http.StatusOK, PostToResponse(postDto))
 }
 
 func (pc *Controller) CreatePost(c echo.Context) error {

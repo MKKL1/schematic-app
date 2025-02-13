@@ -16,11 +16,26 @@ type CategoryVars struct {
 }
 
 func ToDTO(postModel Entity) Post {
+	vars := make([]CategoryVars, len(postModel.CategoryVars))
+	for i, v := range postModel.CategoryVars {
+		vars[i] = CategoryVars{
+			CategoryName: v.CategoryName,
+			Values:       v.Metadata,
+		}
+	}
+
+	tags := make([]string, len(postModel.Tags))
+	for i, v := range postModel.Tags {
+		tags[i] = v
+	}
+
 	return Post{
-		ID:          postModel.ID,
-		Name:        postModel.Name,
-		Description: postModel.Description,
-		Owner:       postModel.Owner,
-		AuthorID:    postModel.AuthorID,
+		ID:           postModel.ID,
+		Name:         postModel.Name,
+		Description:  postModel.Description,
+		Owner:        postModel.Owner,
+		AuthorID:     postModel.AuthorID,
+		CategoryVars: vars,
+		Tags:         tags,
 	}
 }

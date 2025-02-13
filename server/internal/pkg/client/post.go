@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/genproto"
 	"github.com/google/uuid"
 )
@@ -12,6 +13,13 @@ type Post struct {
 	Description *string
 	Owner       int64
 	AuthorID    *int64
+	Vars        []PostCategoryVars
+	Tags        []string
+}
+
+type PostCategoryVars struct {
+	Category string
+	Values   json.RawMessage
 }
 
 type CreatePostParams struct {
@@ -81,12 +89,27 @@ func (p PostQueryGrpcService) GetPostById(ctx context.Context, id int64) (Post, 
 }
 
 func postProtoToDto(post *genproto.Post) Post {
+	vars := make([]PostCategoryVars, len(post.Vars))
+	for i, v := range post.Vars {
+		vars[i] = PostCategoryVars{
+			Category: v.Name,
+			Values:   v.Metadata,
+		}
+	}
+
+	tags := make([]string, len(post.GetTags()))
+	for i, v := range post.Tags {
+		tags[i] = v.Tag
+	}
+
 	return Post{
 		ID:          post.Id,
 		Name:        post.Name,
 		Description: post.Description,
 		Owner:       post.Owner,
 		AuthorID:    post.Author,
+		Vars:        vars,
+		Tags:        tags,
 	}
 }
 

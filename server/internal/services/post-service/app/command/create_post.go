@@ -36,8 +36,6 @@ func (h createPostHandler) Handle(ctx context.Context, params CreatePostParams) 
 		return 0, err
 	}
 
-	//TODO if author id null and author name not null, then create author in author service
-
 	newPost := post.Entity{
 		ID:          h.idNode.Generate().Int64(),
 		Name:        params.Name,

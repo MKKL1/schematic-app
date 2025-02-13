@@ -2,7 +2,6 @@ package post
 
 import (
 	"context"
-	"encoding/json"
 )
 
 type Entity struct {
@@ -15,7 +14,7 @@ type Entity struct {
 	Tags         []string
 }
 
-type CategoryMetadata json.RawMessage
+type CategoryMetadata map[string]interface{}
 
 type CategoryVarsEntity struct {
 	CategoryName string           `json:"categoryName"`
