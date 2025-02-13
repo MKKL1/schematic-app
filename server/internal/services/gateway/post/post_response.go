@@ -7,18 +7,13 @@ import (
 )
 
 type PostResponse struct {
-	ID          string               `json:"id"`
-	Name        string               `json:"name"`
-	Description *string              `json:"desc"`
-	Owner       string               `json:"owner"`
-	AuthorID    *string              `json:"author"`
-	Categories  []CategoriesResponse `json:"categories"`
-	Tags        []string             `json:"tags"`
-}
-
-type CategoriesResponse struct {
-	Name string          `json:"name"`
-	Vars json.RawMessage `json:"vars"`
+	ID          string          `json:"id"`
+	Name        string          `json:"name"`
+	Description *string         `json:"desc"`
+	Owner       string          `json:"owner"`
+	AuthorID    *string         `json:"author"`
+	Categories  json.RawMessage `json:"categories"`
+	Tags        []string        `json:"tags"`
 }
 
 func PostToResponse(post client.Post) PostResponse {
@@ -26,11 +21,6 @@ func PostToResponse(post client.Post) PostResponse {
 	if post.AuthorID != nil {
 		aInt := strconv.FormatInt(*post.AuthorID, 10)
 		authorID = &aInt
-	}
-
-	categories := make([]CategoriesResponse, len(post.Vars))
-	for i, v := range post.Vars {
-		categories[i] = CategoryToResponse(v)
 	}
 
 	tags := make([]string, len(post.Tags))
@@ -44,14 +34,7 @@ func PostToResponse(post client.Post) PostResponse {
 		Description: post.Description,
 		Owner:       strconv.FormatInt(post.Owner, 10),
 		AuthorID:    authorID,
-		Categories:  categories,
+		Categories:  post.Vars,
 		Tags:        tags,
-	}
-}
-
-func CategoryToResponse(vars client.PostCategoryVars) CategoriesResponse {
-	return CategoriesResponse{
-		Name: vars.Category,
-		Vars: vars.Values,
 	}
 }

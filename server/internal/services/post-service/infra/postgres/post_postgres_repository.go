@@ -2,7 +2,7 @@ package postgres
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/infra/postgres/db"
@@ -16,35 +16,37 @@ func NewPostPostgresRepository(queries *db.Queries) *PostPostgresRepository {
 	return &PostPostgresRepository{queries}
 }
 
-func (p PostPostgresRepository) FindById(ctx context.Context, id int64) (post.Entity, error) {
+func (p PostPostgresRepository) FindById(ctx context.Context, id int64) (post.Post, error) {
 	row, err := p.queries.GetPost(ctx, id)
 	if err != nil {
-		return post.Entity{}, err
+		return post.Post{}, err
 	}
 
-	var categoryVars []post.CategoryVarsEntity
+	var categoryVars post.CategoryVars
 	if row.CategoryVars != nil {
-		if err := json.Unmarshal(row.CategoryVars, &categoryVars); err != nil {
-			return post.Entity{}, fmt.Errorf("failed to unmarshal CategoryVars: %w", err)
+		s, ok := row.CategoryVars.(string)
+		if !ok {
+			return post.Post{}, errors.New("invalid type for category var")
 		}
+		categoryVars = []byte(s)
 	}
 
 	var tags []string
 	if row.Tags != nil {
 		tagArray, ok := row.Tags.([]interface{})
 		if !ok {
-			return post.Entity{}, fmt.Errorf("invalid type for Tags")
+			return post.Post{}, fmt.Errorf("invalid type for Tags")
 		}
 		for _, tag := range tagArray {
 			if str, ok := tag.(string); ok {
 				tags = append(tags, str)
 			} else {
-				return post.Entity{}, fmt.Errorf("invalid tag type: expected string, got %T", tag)
+				return post.Post{}, fmt.Errorf("invalid tag type: expected string, got %T", tag)
 			}
 		}
 	}
 
-	postEntity := post.Entity{
+	postEntity := post.Post{
 		ID:           row.ID,
 		Name:         row.Name,
 		Description:  row.Description,
@@ -57,7 +59,7 @@ func (p PostPostgresRepository) FindById(ctx context.Context, id int64) (post.En
 	return postEntity, nil
 }
 
-func (p PostPostgresRepository) Create(ctx context.Context, model post.Entity) error {
+func (p PostPostgresRepository) Create(ctx context.Context, model post.Post) error {
 	//TODO implement me
 	panic("implement me")
 }

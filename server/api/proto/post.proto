@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/any.proto";
+
 package proto;
 
 option go_package = "github.com/MKKL1/schematic-app/server/internal/pkg/genproto";
@@ -25,11 +27,6 @@ message CreatePostResponse {
   int64 id = 1;
 }
 
-message CategoryVars {
-  string name = 1;
-  bytes metadata = 2;
-}
-
 message Tag {
   string tag = 1;
 }
@@ -40,6 +37,6 @@ message Post {
   optional string description = 3;
   int64 owner = 4;
   optional int64 author = 5;
-  repeated CategoryVars vars = 6;
+  google.protobuf.Any vars = 6;
   repeated Tag tags = 7;
 }

@@ -56,20 +56,19 @@ SELECT
     p."desc" AS description,
     p.owner,
     p.author_id,
-    (COALESCE(
+    COALESCE(
             (
                 SELECT json_agg(
                                json_build_object(
-                                       'categoryName', pcm.category,
+                                       'name', pcm.category,
                                        'metadata', pcm.metadata
                                )
-                       )::jsonb
+                       )::text
                 FROM post_category_metadata pcm
                 WHERE pcm.post_id = p.id
             ),
-            '[]'::jsonb
-    ))::jsonb AS category_vars
-       ,
+            '[]'
+    ) AS category_vars,
     COALESCE(
             (
                 SELECT array_agg(pt.tag)::text[]
@@ -88,7 +87,7 @@ type GetPostRow struct {
 	Description  *string
 	Owner        int64
 	AuthorID     *int64
-	CategoryVars []byte
+	CategoryVars interface{}
 	Tags         interface{}
 }
 

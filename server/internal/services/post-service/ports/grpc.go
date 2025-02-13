@@ -2,14 +2,14 @@ package ports
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/genproto"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/command"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/query"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
 	"github.com/google/uuid"
-	"github.com/rs/zerolog/log"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 type GrpcServer struct {
@@ -51,33 +51,28 @@ func (g GrpcServer) CreatePost(ctx context.Context, request *genproto.CreatePost
 }
 
 func dtoToProto(dto post.Post) *genproto.Post {
-	vars := make([]*genproto.CategoryVars, len(dto.CategoryVars))
-	for i, v := range dto.CategoryVars {
-		marshal, err := json.Marshal(v.Values)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Error marshalling values")
-			return nil
-		}
-		vars[i] = &genproto.CategoryVars{
-			Name:     v.CategoryName,
-			Metadata: marshal,
-		}
+	p := &genproto.Post{
+		Id:    dto.ID,
+		Name:  dto.Name,
+		Owner: dto.Owner,
 	}
 
-	tags := make([]*genproto.Tag, len(dto.Tags))
-	for i, v := range dto.Tags {
-		tags[i] = &genproto.Tag{
-			Tag: v,
-		}
+	if dto.Description != nil {
+		p.Description = proto.String(*dto.Description)
+	}
+	if dto.AuthorID != nil {
+		p.Author = proto.Int64(*dto.AuthorID)
 	}
 
-	return &genproto.Post{
-		Id:          dto.ID,
-		Name:        dto.Name,
-		Description: dto.Description,
-		Owner:       dto.Owner,
-		Author:      dto.AuthorID,
-		Vars:        vars,
-		Tags:        tags,
+	p.Vars = &anypb.Any{
+		TypeUrl: "CategoryVars",
+		Value:   dto.CategoryVars,
 	}
+
+	p.Tags = make([]*genproto.Tag, len(dto.Tags))
+	for i, t := range dto.Tags {
+		p.Tags[i] = &genproto.Tag{Tag: t}
+	}
+
+	return p
 }

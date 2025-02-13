@@ -32,5 +32,5 @@ func (h getPostByIdHandler) Handle(ctx context.Context, params GetPostByIdParams
 		return post.Post{}, apperr.WrapErrorf(err, apperr.ErrorCodeUnknown, "repo.FindById")
 	}
 
-	return post.ToDTO(postModel), nil
+	return postModel, nil
 }

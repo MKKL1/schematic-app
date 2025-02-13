@@ -1,6 +1,8 @@
 services:
   postgres:
     image: postgres:alpine
+    networks:
+      - pg-network
     ports:
       - "5432:5432"
     volumes:
@@ -36,3 +38,7 @@ volumes:
   postgres:
   keycloak:
   redis:
+
+networks:
+  pg-network:
+    external: true

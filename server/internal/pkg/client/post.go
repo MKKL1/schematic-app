@@ -13,13 +13,8 @@ type Post struct {
 	Description *string
 	Owner       int64
 	AuthorID    *int64
-	Vars        []PostCategoryVars
+	Vars        json.RawMessage
 	Tags        []string
-}
-
-type PostCategoryVars struct {
-	Category string
-	Values   json.RawMessage
 }
 
 type CreatePostParams struct {
@@ -89,14 +84,6 @@ func (p PostQueryGrpcService) GetPostById(ctx context.Context, id int64) (Post, 
 }
 
 func postProtoToDto(post *genproto.Post) Post {
-	vars := make([]PostCategoryVars, len(post.Vars))
-	for i, v := range post.Vars {
-		vars[i] = PostCategoryVars{
-			Category: v.Name,
-			Values:   v.Metadata,
-		}
-	}
-
 	tags := make([]string, len(post.GetTags()))
 	for i, v := range post.Tags {
 		tags[i] = v.Tag
@@ -108,7 +95,7 @@ func postProtoToDto(post *genproto.Post) Post {
 		Description: post.Description,
 		Owner:       post.Owner,
 		AuthorID:    post.Author,
-		Vars:        vars,
+		Vars:        post.Vars.Value,
 		Tags:        tags,
 	}
 }

@@ -36,7 +36,7 @@ func (h createPostHandler) Handle(ctx context.Context, params CreatePostParams) 
 		return 0, err
 	}
 
-	newPost := post.Entity{
+	newPost := post.Post{
 		ID:          h.idNode.Generate().Int64(),
 		Name:        params.Name,
 		Description: params.Description,
