@@ -23,7 +23,7 @@ func (p PostPostgresRepository) FindById(ctx context.Context, id int64) (post.Po
 		return post.Post{}, err
 	}
 
-	var categoryVars post.CategoryVars
+	var categoryVars post.PostCategories
 	if row.CategoryVars != nil {
 		s, ok := row.CategoryVars.(string)
 		if !ok {
@@ -48,13 +48,13 @@ func (p PostPostgresRepository) FindById(ctx context.Context, id int64) (post.Po
 	}
 
 	postEntity := post.Post{
-		ID:           row.ID,
-		Name:         row.Name,
-		Description:  row.Description,
-		Owner:        row.Owner,
-		AuthorID:     row.AuthorID,
-		CategoryVars: categoryVars,
-		Tags:         tags,
+		ID:          row.ID,
+		Name:        row.Name,
+		Description: row.Description,
+		Owner:       row.Owner,
+		AuthorID:    row.AuthorID,
+		Categories:  categoryVars,
+		Tags:        tags,
 	}
 
 	return postEntity, nil

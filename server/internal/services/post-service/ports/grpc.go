@@ -76,11 +76,7 @@ func dtoToProto(dto post.Post) *genproto.Post {
 		p.Author = proto.Int64(*dto.AuthorID)
 	}
 
-	categ, err := sonic.Marshal(dto.CategoryVars)
-	if err != nil {
-		return nil
-	}
-	p.Categories = categ
+	p.Categories = dto.Categories
 
 	p.Tags = make([]*genproto.Tag, len(dto.Tags))
 	for i, t := range dto.Tags {

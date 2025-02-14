@@ -25,6 +25,7 @@ func main() {
 			Host:     "localhost",
 		})
 		e.Use(http.GRPCErrorMiddleware)
+		e.Use(http.EchoErrorMiddleware)
 
 		userService := client.NewUsersClient(ctx, ":8001")
 		userController := user.NewController(userService)

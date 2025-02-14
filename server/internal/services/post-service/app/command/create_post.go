@@ -50,9 +50,9 @@ func (h createPostHandler) Handle(ctx context.Context, params CreatePostParams) 
 		return 0, err
 	}
 
-	categs := make([]post.CreateCategMetadataParams, len(params.Categories))
+	categs := make([]post.CreatePostCategoryParams, len(params.Categories))
 	for i, c := range params.Categories {
-		categs[i] = post.CreateCategMetadataParams{
+		categs[i] = post.CreatePostCategoryParams{
 			Name:     c.Name,
 			Metadata: c.Metadata,
 		}

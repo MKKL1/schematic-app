@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/genproto"
 	"github.com/bytedance/sonic"
 	"github.com/google/uuid"
@@ -14,8 +13,13 @@ type Post struct {
 	Description *string
 	Owner       int64
 	AuthorID    *int64
-	Vars        json.RawMessage
+	Categories  []PostCategories
 	Tags        []string
+}
+
+type PostCategories struct {
+	Name     string
+	Metadata map[string]interface{}
 }
 
 type CreatePostParams struct {
@@ -100,13 +104,19 @@ func (p PostQueryGrpcService) GetPostById(ctx context.Context, id int64) (Post, 
 		return Post{}, err
 	}
 
-	return postProtoToDto(post), nil
+	return postProtoToDto(post)
 }
 
-func postProtoToDto(post *genproto.Post) Post {
+func postProtoToDto(post *genproto.Post) (Post, error) {
 	tags := make([]string, len(post.GetTags()))
 	for i, v := range post.Tags {
 		tags[i] = v.Tag
+	}
+
+	var categories []PostCategories
+	err := sonic.Unmarshal(post.Categories, &categories)
+	if err != nil {
+		return Post{}, err
 	}
 
 	return Post{
@@ -115,9 +125,9 @@ func postProtoToDto(post *genproto.Post) Post {
 		Description: post.Description,
 		Owner:       post.Owner,
 		AuthorID:    post.Author,
-		Vars:        post.Categories,
+		Categories:  categories,
 		Tags:        tags,
-	}
+	}, nil
 }
 
 func NewPostClient(ctx context.Context, addr string) PostApplication {

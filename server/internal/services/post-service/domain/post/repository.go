@@ -10,11 +10,11 @@ type CreatePostParams struct {
 	Description *string
 	AuthorID    *int64
 	Owner       int64
-	Categories  []CreateCategMetadataParams
+	Categories  []CreatePostCategoryParams
 	Tags        []string
 }
 
-type CreateCategMetadataParams struct {
+type CreatePostCategoryParams struct {
 	Name     string
 	Metadata map[string]interface{}
 }

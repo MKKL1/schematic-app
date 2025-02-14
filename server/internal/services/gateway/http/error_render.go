@@ -5,7 +5,8 @@ type ErrorResponse struct {
 }
 
 type ErrorDetail struct {
-	Domain  string `json:"domain"`
-	Reason  string `json:"reason"`
-	Message string `json:"message"`
+	Domain   string            `json:"domain"`
+	Reason   string            `json:"reason"`
+	Message  string            `json:"message"`
+	Metadata map[string]string `json:"metadata"`
 }

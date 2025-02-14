@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/auth"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/client"
+	gtHttp "github.com/MKKL1/schematic-app/server/internal/services/gateway/http"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"net/http"
@@ -59,7 +60,7 @@ func (pc *Controller) CreatePost(c echo.Context) error {
 	}
 
 	if err = pc.validate.Struct(requestData); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return gtHttp.MapValidationError(err, requestData)
 	}
 
 	categParams := make([]client.CreateCategoryMetadataParams, len(requestData.Categories))
