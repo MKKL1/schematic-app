@@ -31,19 +31,24 @@ WHERE p.id = $1;
 
 
 -- name: CreatePost :exec
-WITH new_post AS (
-    INSERT INTO post (name, "desc", owner, author_id)
-    VALUES ($1, $2, $3, $4)
-    RETURNING id
+WITH ins_post AS (
+    INSERT INTO post (id, name, "desc", owner, author_id)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING id
 ),
-insert_tags AS (
-    INSERT INTO post_tags (post_id, tag)
-    SELECT np.id, t
-    FROM new_post np, unnest($5::text[]) AS t
-),
-insert_category AS (
-    INSERT INTO post_category_metadata (post_id, category, metadata)
-    SELECT np.id, pair.category, pair.metadata
-    FROM new_post np, unnest($6::category_metadata_pair[]) AS pair
-)
-SELECT * FROM new_post;
+     ins_tags AS (
+         INSERT INTO post_tags (post_id, tag)
+             SELECT ins_post.id, t
+             FROM ins_post, unnest($6::text[]) AS t
+     ),
+     ins_cat AS (
+         INSERT INTO post_category_metadata (post_id, category, metadata)
+             SELECT ins_post.id, r."Name", r."Metadata"
+             FROM ins_post,
+                  jsonb_to_recordset($7::jsonb) AS r("Name" text, "Metadata" jsonb)
+     )
+SELECT id FROM ins_post;
+
+-- name: GetCategory :one
+SELECT * FROM categories
+WHERE name = $1;

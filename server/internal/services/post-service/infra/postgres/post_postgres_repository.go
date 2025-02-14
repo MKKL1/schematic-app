@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/infra/postgres/db"
+	"github.com/bytedance/sonic"
 )
 
 type PostPostgresRepository struct {
@@ -59,9 +60,25 @@ func (p PostPostgresRepository) FindById(ctx context.Context, id int64) (post.Po
 	return postEntity, nil
 }
 
-func (p PostPostgresRepository) Create(ctx context.Context, model post.Post) error {
-	//TODO implement me
-	panic("implement me")
+func (p PostPostgresRepository) Create(ctx context.Context, params post.CreatePostParams) error {
+	categoriesJSON, err := sonic.Marshal(params.Categories)
+	if err != nil {
+		return err
+	}
+
+	err = p.queries.CreatePost(ctx, db.CreatePostParams{
+		ID:       params.ID,
+		Name:     params.Name,
+		Desc:     params.Description,
+		Owner:    params.Owner,
+		AuthorID: params.AuthorID,
+		Column6:  params.Tags,
+		Column7:  categoriesJSON,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (p PostPostgresRepository) GetCountForTag(ctx context.Context, tag string) (int64, error) {

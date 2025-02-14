@@ -62,28 +62,21 @@ func (pc *Controller) CreatePost(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
 
-	//Make sure that either name or id is set
-	var authorName *string
-	var authorId *int64
-
-	if requestData.Author != nil {
-		if requestData.Author.ID != nil {
-			_authorId, err2 := strconv.ParseInt(*requestData.Author.ID, 10, 64)
-			if err2 != nil {
-				return err2
-			}
-
-			authorId = &_authorId
-		} else {
-			authorName = requestData.Author.Name
+	categParams := make([]client.CreateCategoryMetadataParams, len(requestData.Categories))
+	for i, c := range requestData.Categories {
+		categParams[i] = client.CreateCategoryMetadataParams{
+			Name:     c.Name,
+			Metadata: c.Metadata,
 		}
 	}
+
 	params := client.CreatePostParams{
 		Name:        requestData.Name,
 		Description: requestData.Description,
-		AuthorName:  authorName,
-		AuthorID:    authorId,
+		AuthorID:    requestData.Author,
 		Sub:         subjectUUID,
+		Categories:  categParams,
+		Tags:        requestData.Tags,
 	}
 
 	id, err := pc.postApp.Command.CreatePost(ctx, params)

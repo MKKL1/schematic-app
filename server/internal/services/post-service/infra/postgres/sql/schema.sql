@@ -44,3 +44,8 @@ create table post_tags (
 );
 
 create index idx_post_tags_tag on post_tags(tag);
+
+CREATE TYPE category_metadata_pair AS (
+    category text,
+    metadata jsonb
+);

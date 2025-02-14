@@ -50,12 +50,22 @@ func (h createPostHandler) Handle(ctx context.Context, params CreatePostParams) 
 		return 0, err
 	}
 
-	newPost := post.Post{
+	categs := make([]post.CreateCategMetadataParams, len(params.Categories))
+	for i, c := range params.Categories {
+		categs[i] = post.CreateCategMetadataParams{
+			Name:     c.Name,
+			Metadata: c.Metadata,
+		}
+	}
+
+	newPost := post.CreatePostParams{
 		ID:          h.idNode.Generate().Int64(),
 		Name:        params.Name,
 		Description: params.Description,
 		Owner:       user.ID,
 		AuthorID:    params.AuthorID,
+		Categories:  categs,
+		Tags:        params.Tags,
 	}
 
 	err = h.repo.Create(ctx, newPost)

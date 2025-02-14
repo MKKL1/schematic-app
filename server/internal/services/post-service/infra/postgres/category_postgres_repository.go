@@ -7,16 +7,23 @@ import (
 )
 
 type CategoryPostgresRepository struct {
-	queries db.Queries
+	queries *db.Queries
 }
 
-func NewCategoryPostgresRepository(queries db.Queries) *CategoryPostgresRepository {
+func NewCategoryPostgresRepository(queries *db.Queries) *CategoryPostgresRepository {
 	return &CategoryPostgresRepository{queries}
 }
 
 func (c CategoryPostgresRepository) FindCategoryByName(ctx context.Context, name string) (category.Entity, error) {
-	//TODO implement me
-	panic("implement me")
+	dbCateg, err := c.queries.GetCategory(ctx, name)
+	if err != nil {
+		return category.Entity{}, err
+	}
+
+	return category.Entity{
+		Name:             dbCateg.Name,
+		ValueDefinitions: dbCateg.MetadataSchema,
+	}, nil
 }
 
 func (c CategoryPostgresRepository) CreateCategory(ctx context.Context, category category.Entity) (category.Entity, error) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/genproto"
+	"github.com/bytedance/sonic"
 	"github.com/google/uuid"
 )
 
@@ -20,9 +21,15 @@ type Post struct {
 type CreatePostParams struct {
 	Name        string
 	Description *string
-	AuthorName  *string
 	AuthorID    *int64
 	Sub         uuid.UUID
+	Categories  []CreateCategoryMetadataParams
+	Tags        []string
+}
+
+type CreateCategoryMetadataParams struct {
+	Name     string
+	Metadata map[string]interface{}
 }
 
 type PostApplication struct {
@@ -52,12 +59,25 @@ func (p PostCommandGrpcService) CreatePost(ctx context.Context, params CreatePos
 		return 0, err
 	}
 
+	categBytes, err := sonic.Marshal(params.Categories)
+	if err != nil {
+		return 0, err
+	}
+
+	tags := make([]*genproto.Tag, len(params.Tags))
+	for i, tag := range params.Tags {
+		tags[i] = &genproto.Tag{
+			Tag: tag,
+		}
+	}
+
 	createdId, err := p.grpcClient.CreatePost(ctx, &genproto.CreatePostRequest{
 		Name:        params.Name,
 		Description: params.Description,
-		AuthorName:  params.AuthorName,
 		AuthorId:    params.AuthorID,
 		AuthSub:     subBytes,
+		Categories:  categBytes,
+		Tags:        tags,
 	})
 	if err != nil {
 		return 0, err
@@ -95,7 +115,7 @@ func postProtoToDto(post *genproto.Post) Post {
 		Description: post.Description,
 		Owner:       post.Owner,
 		AuthorID:    post.Author,
-		Vars:        post.Vars.Value,
+		Vars:        post.Categories,
 		Tags:        tags,
 	}
 }
