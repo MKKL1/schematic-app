@@ -76,10 +76,19 @@ func (pc *Controller) CreatePost(c echo.Context) error {
 		}
 	}
 
+	var authorId *int64
+	if requestData.Author != nil {
+		_authorId, err := strconv.ParseInt(*requestData.Author, 10, 64)
+		if err != nil {
+			return err
+		}
+		authorId = &_authorId
+	}
+
 	params := client.CreatePostParams{
 		Name:        requestData.Name,
 		Description: requestData.Description,
-		AuthorID:    requestData.Author,
+		AuthorID:    authorId,
 		Sub:         subjectUUID,
 		Categories:  categParams,
 		Tags:        requestData.Tags,

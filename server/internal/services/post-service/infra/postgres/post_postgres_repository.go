@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	errorDB "github.com/MKKL1/schematic-app/server/internal/pkg/db"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/infra/postgres/db"
 	"github.com/bytedance/sonic"
+	"github.com/jackc/pgx/v5"
 )
 
 type PostPostgresRepository struct {
@@ -20,6 +22,9 @@ func NewPostPostgresRepository(queries *db.Queries) *PostPostgresRepository {
 func (p PostPostgresRepository) FindById(ctx context.Context, id int64) (post.Post, error) {
 	row, err := p.queries.GetPost(ctx, id)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return post.Post{}, errorDB.ErrNoRows
+		}
 		return post.Post{}, err
 	}
 

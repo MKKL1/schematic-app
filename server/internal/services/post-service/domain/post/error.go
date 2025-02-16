@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/apperr"
+	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/category"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -18,6 +19,8 @@ func ErrorMapper(err error) error {
 	if appErr, ok := apperr.FromError(err); ok {
 		switch appErr.Code {
 		case ErrorCodePostNotFound:
+			code = codes.NotFound
+		case category.ErrorCodeCategoryNotFound:
 			code = codes.NotFound
 		default:
 			code = codes.Unknown
@@ -42,10 +45,10 @@ func ErrorMapper(err error) error {
 	if errors.As(err, &pme) {
 		br := &errdetails.BadRequest{}
 
-		for category, v := range pme.Errors {
+		for categ, v := range pme.Errors {
 			for _, k := range v.Errors {
 				br.FieldViolations = append(br.FieldViolations, &errdetails.BadRequest_FieldViolation{
-					Field:       fmt.Sprintf("%s:%s", category, k.Field),
+					Field:       fmt.Sprintf("%s:%s", categ, k.Field),
 					Description: k.Message,
 				})
 			}

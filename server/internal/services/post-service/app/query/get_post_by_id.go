@@ -27,9 +27,9 @@ func (h getPostByIdHandler) Handle(ctx context.Context, params GetPostByIdParams
 	postModel, err := h.repo.FindById(ctx, params.Id)
 	if err != nil {
 		if errors.Is(err, db.ErrNoRows) {
-			return post.Post{}, apperr.WrapErrorf(err, post.ErrorCodePostNotFound, "repo.FindById")
+			return post.Post{}, apperr.WrapErrorf(err, post.ErrorCodePostNotFound, "GetPostByIdHandler: Handle: repo.FindById")
 		}
-		return post.Post{}, apperr.WrapErrorf(err, apperr.ErrorCodeUnknown, "repo.FindById")
+		return post.Post{}, apperr.WrapErrorf(err, apperr.ErrorCodeUnknown, "GetPostByIdHandler: Handle: repo.FindById")
 	}
 
 	return postModel, nil

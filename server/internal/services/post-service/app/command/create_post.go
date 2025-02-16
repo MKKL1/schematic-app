@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/apperr"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/client"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/db"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/category"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/category/validator"
@@ -71,7 +72,7 @@ func (h createPostHandler) Handle(ctx context.Context, params CreatePostParams) 
 
 	err = h.repo.Create(ctx, newPost)
 	if err != nil {
-		return 0, apperr.WrapErrorf(err, apperr.ErrorCodeUnknown, "repo.Create")
+		return 0, apperr.WrapErrorf(err, apperr.ErrorCodeUnknown, "CreatePostHandler: Handle: repo.Create")
 	}
 
 	return newPost.ID, nil
@@ -84,7 +85,11 @@ func (h createPostHandler) validateCategories(ctx context.Context, categories []
 		//TODO can be bulk
 		categ, err := h.categoryRepo.FindCategoryByName(ctx, categoryData.Name)
 		if err != nil {
-			return err
+			if errors.Is(err, db.ErrNoRows) {
+				return apperr.WrapErrorf(err, category.ErrorCodeCategoryNotFound, "CreatePostHandler: validateCategories: repo.FindCategoryByName").
+					AddMetadata("name", categoryData.Name)
+			}
+			return apperr.WrapErrorf(err, apperr.ErrorCodeUnknown, "CreatePostHandler: Handle: repo.FindCategoryByName")
 		}
 
 		schemaValidator := validator.NewSchemaValidator(categ.ValueDefinitions)

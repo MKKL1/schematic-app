@@ -13,7 +13,24 @@ func RegisterErrorMappers() {
 			Errors: []http.ErrorDetail{
 				{
 					Reason:  info.Reason,
-					Message: fmt.Sprintf("Post by id %s not found", info.Metadata["id"]),
+					Message: fmt.Sprintf("Post by id '%s' not found", info.Metadata["id"]),
+					Metadata: map[string]string{
+						"id": info.Metadata["id"],
+					},
+				},
+			},
+		}, true
+	})
+
+	http.Mapper.AddMapper("CATEGORY_NOT_FOUND", func(c echo.Context, info *errdetails.ErrorInfo, details []any) (*http.ErrorResponse, bool) {
+		return &http.ErrorResponse{
+			Errors: []http.ErrorDetail{
+				{
+					Reason:  info.Reason,
+					Message: fmt.Sprintf("Category by name '%s' not found", info.Metadata["name"]),
+					Metadata: map[string]string{
+						"name": info.Metadata["name"],
+					},
 				},
 			},
 		}, true

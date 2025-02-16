@@ -39,7 +39,7 @@ func getJSONFieldName(requestData interface{}, fieldName string) string {
 			}
 		}
 	}
-	return fieldName
+	return strings.ToLower(fieldName)
 }
 
 func MapValidationError(validationErr error, requestData interface{}) error {

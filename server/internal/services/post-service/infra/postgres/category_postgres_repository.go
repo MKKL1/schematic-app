@@ -2,8 +2,11 @@ package postgres
 
 import (
 	"context"
+	"errors"
+	errorDB "github.com/MKKL1/schematic-app/server/internal/pkg/db"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/category"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/infra/postgres/db"
+	"github.com/jackc/pgx/v5"
 )
 
 type CategoryPostgresRepository struct {
@@ -17,6 +20,9 @@ func NewCategoryPostgresRepository(queries *db.Queries) *CategoryPostgresReposit
 func (c CategoryPostgresRepository) FindCategoryByName(ctx context.Context, name string) (category.Entity, error) {
 	dbCateg, err := c.queries.GetCategory(ctx, name)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return category.Entity{}, errorDB.ErrNoRows
+		}
 		return category.Entity{}, err
 	}
 

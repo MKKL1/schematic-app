@@ -9,8 +9,8 @@ type PostResponse struct {
 	ID          string                   `json:"id"`
 	Name        string                   `json:"name"`
 	Description *string                  `json:"desc"`
-	Owner       string                   `json:"owner"`
-	AuthorID    *string                  `json:"author"`
+	Owner       string                   `json:"owner_id"`
+	AuthorID    *string                  `json:"author_id"`
 	Categories  []PostCategoriesResponse `json:"categories"`
 	Tags        []string                 `json:"tags"`
 }
