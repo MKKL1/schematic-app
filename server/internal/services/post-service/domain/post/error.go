@@ -1,6 +1,8 @@
 package post
 
 import (
+	"errors"
+	"fmt"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/apperr"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
@@ -31,6 +33,32 @@ func ErrorMapper(err error) error {
 		stWithDetails, errDetails := st.WithDetails(errorInfo)
 		if errDetails != nil {
 			// In the rare case that attaching details fails, log and return the original status.
+			return st.Err()
+		}
+		return stWithDetails.Err()
+	}
+
+	var pme *PostMetadataError
+	if errors.As(err, &pme) {
+		br := &errdetails.BadRequest{}
+
+		for category, v := range pme.Errors {
+			for _, k := range v.Errors {
+				br.FieldViolations = append(br.FieldViolations, &errdetails.BadRequest_FieldViolation{
+					Field:       fmt.Sprintf("%s:%s", category, k.Field),
+					Description: k.Message,
+				})
+			}
+		}
+
+		st := status.New(codes.InvalidArgument, "invalid post metadata")
+		errorInfo := &errdetails.ErrorInfo{
+			Reason:   "POST_METADATA_VALIDATION_ERROR",
+			Domain:   "schem.post",
+			Metadata: nil,
+		}
+		stWithDetails, errDetails := st.WithDetails(errorInfo, br)
+		if errDetails != nil {
 			return st.Err()
 		}
 		return stWithDetails.Err()

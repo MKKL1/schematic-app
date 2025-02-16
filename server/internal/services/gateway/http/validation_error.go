@@ -63,21 +63,15 @@ func MapValidationError(validationErr error, requestData interface{}) error {
 				detail = fmt.Sprintf("failed '%s' validation", fe.Tag())
 			}
 
-			message := fmt.Sprintf("Field '%s' %s", jsonFieldName, detail)
-
-			metadata := map[string]string{
-				"parameter": jsonFieldName,
-				"details":   detail,
-				"code":      fe.Tag(),
-				"value":     fmt.Sprintf("%v", fe.Value()),
+			vBuilder := ValidationErrorBuilder{
+				Parameter: jsonFieldName,
+				Detail:    detail,
+				Code:      fe.Tag(),
+				Value:     fmt.Sprintf("%v", fe.Value()),
+				Message:   fmt.Sprintf("Field '%s' %s", jsonFieldName, detail),
 			}
 
-			errorDetails = append(errorDetails, ErrorDetail{
-				Domain:   "gateway",
-				Reason:   "VALIDATION_ERROR",
-				Message:  message,
-				Metadata: metadata,
-			})
+			errorDetails = append(errorDetails, vBuilder.Build())
 		}
 
 		return &GatewayError{
@@ -92,11 +86,44 @@ func MapValidationError(validationErr error, requestData interface{}) error {
 		HttpCode: 500,
 		ErrResponse: ErrorResponse{
 			Errors: []ErrorDetail{{
-				Domain:   "gateway",
 				Reason:   "VALIDATION_ERROR",
 				Message:  validationErr.Error(),
 				Metadata: map[string]string{},
 			}},
 		},
+	}
+}
+
+type ValidationErrorBuilder struct {
+	Parameter string
+	Detail    string
+	Code      string
+	Value     string
+	Message   string
+}
+
+func (v ValidationErrorBuilder) Build() ErrorDetail {
+	metadata := map[string]string{}
+
+	if v.Parameter != "" {
+		metadata["parameter"] = v.Parameter
+	}
+
+	if v.Detail != "" {
+		metadata["detail"] = v.Detail
+	}
+
+	if v.Code != "" {
+		metadata["code"] = v.Code
+	}
+
+	if v.Value != "" {
+		metadata["value"] = v.Value
+	}
+
+	return ErrorDetail{
+		Reason:   "VALIDATION_ERROR",
+		Message:  v.Message,
+		Metadata: metadata,
 	}
 }

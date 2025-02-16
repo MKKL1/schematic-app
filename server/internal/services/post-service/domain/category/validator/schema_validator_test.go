@@ -1,95 +1,112 @@
 package validator
 
-import (
-	"github.com/bytedance/sonic"
-	"os"
-	"strings"
-	"testing"
-)
+import "testing"
 
-func compileTestSchema(t *testing.T, schemaStr string) MetadataSchemaValidator {
-	t.Helper()
-	schema, err := CompileSchema([]byte(schemaStr))
-	if err != nil {
-		t.Fatalf("failed to compile schema: %v", err)
-	}
-	return schema
-}
-
-const validSchema = `{
-	"afkable": {"type": "boolean"},
-	"mob_type": {"type": "enum", "values": ["zombie", "skeleton", "spider", "creeper"]},
-	"spawn_rate": {"min": 100, "max": 500, "type": "range"}
+const customSchema = `{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "afkable": {
+      "type": "boolean"
+    },
+    "mob_type": {
+      "type": "string",
+      "enum": ["zombie", "skeleton", "spider", "creeper"]
+    },
+    "spawn_rate": {
+      "type": "number",
+      "minimum": 100,
+      "maximum": 500
+    }
+  },
+  "required": ["afkable", "mob_type", "spawn_rate"],
+  "additionalProperties": false
 }`
 
-func TestCompileSchema(t *testing.T) {
-	schema := compileTestSchema(t, validSchema)
-	expectedKeys := []string{"afkable", "mob_type", "spawn_rate"}
-	for _, key := range expectedKeys {
-		if _, ok := schema.Map()[key]; !ok {
-			t.Fatalf("key %s not found in compiled schema", key)
-		}
+func TestSchemaValidator_ValidDocument(t *testing.T) {
+	validator := NewSchemaValidator([]byte(customSchema))
+	if validator == nil {
+		t.Fatal("Failed to create SchemaValidator")
 	}
-}
 
-func TestValidateMetadata(t *testing.T) {
-	schema := compileTestSchema(t, validSchema)
-	data := map[string]interface{}{
+	// A valid document that meets the schema requirements.
+	validDoc := map[string]interface{}{
 		"afkable":    false,
 		"mob_type":   "spider",
-		"spawn_rate": map[string]interface{}{"min": 342, "max": 440, "extra": "should be removed"},
+		"spawn_rate": 342,
 	}
-	cleanedData, err := schema.ValidateData(data)
+
+	err := validator.Validate(validDoc)
 	if err != nil {
-		t.Fatalf("validation error: %v", err)
+		t.Fatalf("expected valid document, got error: %v", err)
+	}
+}
+
+func TestSchemaValidator_InvalidDocument(t *testing.T) {
+	validator := NewSchemaValidator([]byte(customSchema))
+	if validator == nil {
+		t.Fatal("Failed to create SchemaValidator")
 	}
 
-	// Check that only allowed keys are present.
-	if len(cleanedData) != 3 {
-		t.Fatalf("unexpected number of keys in validated data: got %d, want %d", len(cleanedData), 3)
+	// An invalid document: spawn_rate is out of range and there's an extra field.
+	invalidDoc := map[string]interface{}{
+		"afkable":    false,
+		"mob_type":   "spider",
+		"spawn_rate": 50, // Below minimum (should be >= 100)
+		"extra":      "should not be here",
 	}
 
-	// Check that the spawn_rate field is cleaned.
-	spawnRate, ok := cleanedData["spawn_rate"].(map[string]interface{})
+	err := validator.Validate(invalidDoc)
+	if err == nil {
+		t.Fatal("expected invalid document to return an error, got nil")
+	} else {
+		t.Logf("Validation error as expected: %v", err)
+	}
+}
+
+func TestSchemaValidator_FieldErrors(t *testing.T) {
+	validator := NewSchemaValidator([]byte(customSchema))
+	if validator == nil {
+		t.Fatal("Failed to create SchemaValidator")
+	}
+
+	// An invalid document: spawn_rate is below the minimum and extra field is provided.
+	invalidDoc := map[string]interface{}{
+		"afkable":    false,
+		"mob_type":   "spider",
+		"spawn_rate": 50, // Should be >= 100.
+		"extra":      "not allowed",
+	}
+
+	err := validator.Validate(invalidDoc)
+	if err == nil {
+		t.Fatal("Expected validation error, got nil")
+	}
+
+	ve, ok := err.(*ValidationError)
 	if !ok {
-		t.Fatalf("spawn_rate is not a valid object")
+		t.Fatalf("Expected a ValidationError, got: %T", err)
 	}
-	if _, exists := spawnRate["extra"]; exists {
-		t.Fatal("extra field was not removed from spawn_rate")
+
+	for _, fe := range ve.Errors {
+		t.Logf("Field %q error: %s", fe.Field, fe.Message)
 	}
 }
 
-func TestInvalidSchemasFromFile(t *testing.T) {
-	data, err := os.ReadFile("testdata/invalid_schemas.json")
+func BenchmarkSchemaValidator_ValidDocument(b *testing.B) {
+	validator := NewSchemaValidator([]byte(customSchema))
+	if validator == nil {
+		b.Fatal("Failed to create SchemaValidator")
+	}
+
+	validDoc := map[string]interface{}{
+		"afkable":    false,
+		"mob_type":   "spider",
+		"spawn_rate": 342,
+	}
+
+	err := validator.Validate(validDoc)
 	if err != nil {
-		t.Fatalf("failed to load test file: %v", err)
-	}
-
-	var testCases []struct {
-		Name          string `json:"name"`
-		Schema        string `json:"schema"`
-		ExpectedError string `json:"expected_error"`
-	}
-	if err := sonic.Unmarshal(data, &testCases); err != nil {
-		t.Fatalf("failed to unmarshal test cases: %v", err)
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.Name, func(t *testing.T) {
-			_, err := CompileSchema([]byte(tc.Schema))
-			if err == nil {
-				t.Fatalf("expected error for schema %q, got nil", tc.Schema)
-			}
-			if !strings.Contains(err.Error(), tc.ExpectedError) {
-				t.Fatalf("expected error to contain %q, got %q", tc.ExpectedError, err.Error())
-			}
-		})
-	}
-}
-
-func BenchmarkCompileSchema(b *testing.B) {
-	_, err := CompileSchema([]byte(validSchema))
-	if err != nil {
-		b.Fatal(err)
+		b.Fatalf("expected valid document, got error: %v", err)
 	}
 }

@@ -12,7 +12,7 @@ import (
 var Mapper = NewDefaultErrorMessageMapper()
 
 // GRPCErrorToDetailedHTTPResponse converts a gRPC error (with details) to an HTTP status code and a JSON payload.
-func GRPCErrorToDetailedHTTPResponse(err error) (int, interface{}) {
+func GRPCErrorToDetailedHTTPResponse(c echo.Context, err error) (int, interface{}) {
 	st, ok := status.FromError(err)
 	if !ok {
 		st = status.New(codes.Unknown, err.Error())
@@ -21,34 +21,28 @@ func GRPCErrorToDetailedHTTPResponse(err error) (int, interface{}) {
 	userMessage := st.Message()
 	log.Error().Msg(userMessage)
 
-	var errDetail ErrorDetail
+	var errResp ErrorResponse
 
 	for _, detail := range st.Details() {
 		if info, ok := detail.(*errdetails.ErrorInfo); ok {
-			errDetail = Mapper.MapError(info)
+			mappedErr, ok := Mapper.MapError(c, info, st.Details())
+			if !ok || mappedErr == nil {
+				errResp = ErrorResponse{
+					Errors: []ErrorDetail{
+						{
+							Reason:   "INTERNAL_ERROR",
+							Message:  "An unexpected error occurred",
+							Metadata: map[string]string{},
+						},
+					},
+				}
+				break
+			}
+
+			errResp = *mappedErr
 			break
 		}
 	}
 
-	return httpStatus, ErrorResponse{
-		Errors: []ErrorDetail{errDetail},
-	}
-}
-
-// GRPCErrorMiddleware is an Echo middleware that intercepts errors and converts gRPC errors into HTTP JSON responses.
-func GRPCErrorMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		// Execute the next handler.
-		err := next(c)
-		if err != nil {
-			// Check if the error is a gRPC error.
-			if _, ok := status.FromError(err); ok {
-				httpStatus, payload := GRPCErrorToDetailedHTTPResponse(err)
-				return c.JSON(httpStatus, payload)
-			}
-			// For non–gRPC errors, you could choose to return them as is or wrap them.
-			return err
-		}
-		return nil
-	}
+	return httpStatus, errResp
 }

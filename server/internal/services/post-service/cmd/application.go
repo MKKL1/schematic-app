@@ -7,7 +7,6 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/command"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/query"
-	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/category"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/infra/postgres"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/infra/postgres/db"
 	"github.com/bwmarrin/snowflake"
@@ -48,11 +47,9 @@ func NewApplication(ctx context.Context) app.Application {
 
 	userService := client.NewUsersClient(ctx, ":8001")
 
-	schemaProvider := category.DefaultSchemaProvider{}
-
 	return app.Application{
 		Commands: app.Commands{
-			CreatePost: command.NewCreatePostHandler(postRepo, categoryRepo, idNode, userService, schemaProvider),
+			CreatePost: command.NewCreatePostHandler(postRepo, categoryRepo, idNode, userService),
 		},
 		Queries: app.Queries{
 			GetPostById: query.NewGetPostByIdHandler(postRepo),

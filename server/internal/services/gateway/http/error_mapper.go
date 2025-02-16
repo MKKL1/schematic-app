@@ -1,8 +1,11 @@
 package http
 
-import "google.golang.org/genproto/googleapis/rpc/errdetails"
+import (
+	"github.com/labstack/echo/v4"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
+)
 
-type ErrorMessageMapper func(*errdetails.ErrorInfo) ErrorDetail
+type ErrorMessageMapper func(c echo.Context, errInfo *errdetails.ErrorInfo, details []any) (*ErrorResponse, bool)
 
 type DefaultErrorMessageMapper struct {
 	mapper map[string]ErrorMessageMapper
@@ -12,8 +15,12 @@ func NewDefaultErrorMessageMapper() *DefaultErrorMessageMapper {
 	return &DefaultErrorMessageMapper{mapper: make(map[string]ErrorMessageMapper)}
 }
 
-func (m *DefaultErrorMessageMapper) MapError(errInfo *errdetails.ErrorInfo) ErrorDetail {
-	return m.mapper[errInfo.Reason](errInfo)
+func (m *DefaultErrorMessageMapper) MapError(c echo.Context, errInfo *errdetails.ErrorInfo, details []any) (*ErrorResponse, bool) {
+	mapper, ok := m.mapper[errInfo.Reason]
+	if !ok {
+		return nil, false
+	}
+	return mapper(c, errInfo, details)
 }
 
 func (m *DefaultErrorMessageMapper) AddMapper(reason string, mapper ErrorMessageMapper) {

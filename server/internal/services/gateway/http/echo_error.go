@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/labstack/echo/v4"
+	"google.golang.org/grpc/status"
 	"net/http"
 	"strings"
 )
@@ -40,7 +41,6 @@ func MapUnmarshalError(err error) error {
 			HttpCode: 400,
 			ErrResponse: ErrorResponse{
 				Errors: []ErrorDetail{{
-					Domain:   "gateway",
 					Reason:   "VALIDATION_ERROR",
 					Message:  message,
 					Metadata: metadata,
@@ -65,7 +65,6 @@ func EchoErrorMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 				return c.JSON(http.StatusBadRequest, ErrorResponse{
 					Errors: []ErrorDetail{
 						{
-							Domain:   "gateway",
 							Reason:   "INVALID_JSON",
 							Message:  "Invalid JSON format",
 							Metadata: map[string]string{"position": fmt.Sprintf("%d", syntaxErr.Offset)},
@@ -82,12 +81,16 @@ func EchoErrorMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 				return c.JSON(gatewayErr.HttpCode, gatewayErr.ErrResponse)
 			}
 
+			if _, ok := status.FromError(err); ok {
+				httpStatus, payload := GRPCErrorToDetailedHTTPResponse(c, err)
+				return c.JSON(httpStatus, payload)
+			}
+
 			c.Logger().Error(err)
 
 			return c.JSON(http.StatusInternalServerError, ErrorResponse{
 				Errors: []ErrorDetail{
 					{
-						Domain:   "gateway",
 						Reason:   "INTERNAL_ERROR",
 						Message:  "An unexpected error occurred",
 						Metadata: map[string]string{},

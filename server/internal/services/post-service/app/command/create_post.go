@@ -2,10 +2,12 @@ package command
 
 import (
 	"context"
+	"errors"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/apperr"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/client"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/category"
+	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/category/validator"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
 	"github.com/bwmarrin/snowflake"
 	"github.com/google/uuid"
@@ -28,15 +30,14 @@ type CategoryMetadataParams struct {
 type CreatePostHandler decorator.CommandHandler[CreatePostParams, int64]
 
 type createPostHandler struct {
-	repo           post.Repository
-	categoryRepo   category.Repository
-	idNode         *snowflake.Node
-	userService    client.UserApplication
-	schemaProvider category.SchemaProvider
+	repo         post.Repository
+	categoryRepo category.Repository
+	idNode       *snowflake.Node
+	userService  client.UserApplication
 }
 
-func NewCreatePostHandler(repo post.Repository, categoryRepo category.Repository, idNode *snowflake.Node, userService client.UserApplication, provider category.SchemaProvider) CreatePostHandler {
-	return createPostHandler{repo, categoryRepo, idNode, userService, provider}
+func NewCreatePostHandler(repo post.Repository, categoryRepo category.Repository, idNode *snowflake.Node, userService client.UserApplication) CreatePostHandler {
+	return createPostHandler{repo, categoryRepo, idNode, userService}
 }
 
 func (h createPostHandler) Handle(ctx context.Context, params CreatePostParams) (int64, error) {
@@ -77,6 +78,8 @@ func (h createPostHandler) Handle(ctx context.Context, params CreatePostParams) 
 }
 
 func (h createPostHandler) validateCategories(ctx context.Context, categories []CategoryMetadataParams) error {
+	verrs := make(map[string]validator.ValidationError)
+	var ok = true
 	for _, categoryData := range categories {
 		//TODO can be bulk
 		categ, err := h.categoryRepo.FindCategoryByName(ctx, categoryData.Name)
@@ -84,17 +87,22 @@ func (h createPostHandler) validateCategories(ctx context.Context, categories []
 			return err
 		}
 
-		validator, err := h.schemaProvider.GetValidator(categ.ValueDefinitions)
-		if err != nil {
-			return err
-		}
+		schemaValidator := validator.NewSchemaValidator(categ.ValueDefinitions)
 
-		cleanedMetadata, err := validator.ValidateData(categoryData.Metadata)
+		err = schemaValidator.Validate(categoryData.Metadata)
 		if err != nil {
-			return err
+			validationErrors := &validator.ValidationError{}
+			if errors.As(err, &validationErrors) {
+				ok = false
+				verrs[categoryData.Name] = *validationErrors
+			} else {
+				return err
+			}
 		}
+	}
 
-		categoryData.Metadata = cleanedMetadata
+	if !ok {
+		return &post.PostMetadataError{Errors: verrs}
 	}
 
 	return nil
