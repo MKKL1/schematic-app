@@ -89,10 +89,12 @@ func (h createPostHandler) validateCategories(ctx context.Context, categories []
 			return err
 		}
 
-		err = validator.ValidateData(categoryData.Metadata)
+		cleanedMetadata, err := validator.ValidateData(categoryData.Metadata)
 		if err != nil {
 			return err
 		}
+
+		categoryData.Metadata = cleanedMetadata
 	}
 
 	return nil
