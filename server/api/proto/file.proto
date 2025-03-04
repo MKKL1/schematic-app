@@ -1,0 +1,14 @@
+syntax = "proto3";
+import "google/protobuf/empty.proto";
+
+package proto;
+
+option go_package = "github.com/MKKL1/schematic-app/server/internal/pkg/genproto";
+
+service FileService {
+  rpc UploadTempFile(stream UploadTempRequest) returns (google.protobuf.Empty);
+}
+
+message UploadTempRequest {
+  bytes data = 1;
+}
