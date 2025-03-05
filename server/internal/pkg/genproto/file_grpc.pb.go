@@ -11,7 +11,6 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -27,7 +26,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type FileServiceClient interface {
-	UploadTempFile(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadTempRequest, emptypb.Empty], error)
+	UploadTempFile(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadTempRequest, UploadTempFileResponse], error)
 }
 
 type fileServiceClient struct {
@@ -38,24 +37,24 @@ func NewFileServiceClient(cc grpc.ClientConnInterface) FileServiceClient {
 	return &fileServiceClient{cc}
 }
 
-func (c *fileServiceClient) UploadTempFile(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadTempRequest, emptypb.Empty], error) {
+func (c *fileServiceClient) UploadTempFile(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadTempRequest, UploadTempFileResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &FileService_ServiceDesc.Streams[0], FileService_UploadTempFile_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[UploadTempRequest, emptypb.Empty]{ClientStream: stream}
+	x := &grpc.GenericClientStream[UploadTempRequest, UploadTempFileResponse]{ClientStream: stream}
 	return x, nil
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type FileService_UploadTempFileClient = grpc.ClientStreamingClient[UploadTempRequest, emptypb.Empty]
+type FileService_UploadTempFileClient = grpc.ClientStreamingClient[UploadTempRequest, UploadTempFileResponse]
 
 // FileServiceServer is the server API for FileService service.
 // All implementations must embed UnimplementedFileServiceServer
 // for forward compatibility.
 type FileServiceServer interface {
-	UploadTempFile(grpc.ClientStreamingServer[UploadTempRequest, emptypb.Empty]) error
+	UploadTempFile(grpc.ClientStreamingServer[UploadTempRequest, UploadTempFileResponse]) error
 	mustEmbedUnimplementedFileServiceServer()
 }
 
@@ -66,7 +65,7 @@ type FileServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedFileServiceServer struct{}
 
-func (UnimplementedFileServiceServer) UploadTempFile(grpc.ClientStreamingServer[UploadTempRequest, emptypb.Empty]) error {
+func (UnimplementedFileServiceServer) UploadTempFile(grpc.ClientStreamingServer[UploadTempRequest, UploadTempFileResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method UploadTempFile not implemented")
 }
 func (UnimplementedFileServiceServer) mustEmbedUnimplementedFileServiceServer() {}
@@ -91,11 +90,11 @@ func RegisterFileServiceServer(s grpc.ServiceRegistrar, srv FileServiceServer) {
 }
 
 func _FileService_UploadTempFile_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(FileServiceServer).UploadTempFile(&grpc.GenericServerStream[UploadTempRequest, emptypb.Empty]{ServerStream: stream})
+	return srv.(FileServiceServer).UploadTempFile(&grpc.GenericServerStream[UploadTempRequest, UploadTempFileResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type FileService_UploadTempFileServer = grpc.ClientStreamingServer[UploadTempRequest, emptypb.Empty]
+type FileService_UploadTempFileServer = grpc.ClientStreamingServer[UploadTempRequest, UploadTempFileResponse]
 
 // FileService_ServiceDesc is the grpc.ServiceDesc for FileService service.
 // It's only intended for direct use with grpc.RegisterService,

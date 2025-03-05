@@ -7,7 +7,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/emptypb"
 	"io"
 )
 
@@ -20,7 +19,7 @@ func NewGrpcServer(app app.Application) *GrpcServer {
 	return &GrpcServer{app: app}
 }
 
-func (g GrpcServer) UploadTempFile(stream grpc.ClientStreamingServer[genproto.UploadTempRequest, emptypb.Empty]) error {
+func (g GrpcServer) UploadTempFile(stream grpc.ClientStreamingServer[genproto.UploadTempRequest, genproto.UploadTempFileResponse]) error {
 	// Expect the first message to be metadata.
 	req, err := stream.Recv()
 	if err != nil {
@@ -71,7 +70,7 @@ func (g GrpcServer) UploadTempFile(stream grpc.ClientStreamingServer[genproto.Up
 	}()
 
 	// Use the pipe reader to stream the data to MinIO.
-	_, err = g.app.Commands.UploadTempFile.Handle(
+	resp, err := g.app.Commands.UploadTempFile.Handle(
 		stream.Context(), command.UploadTempFileParams{
 			Reader:      pr,
 			FileName:    objectName,
@@ -90,5 +89,9 @@ func (g GrpcServer) UploadTempFile(stream grpc.ClientStreamingServer[genproto.Up
 		return status.Errorf(codes.Internal, "error while receiving stream: %v", streamErr)
 	}
 
-	return stream.SendAndClose(&emptypb.Empty{})
+	return stream.SendAndClose(&genproto.UploadTempFileResponse{
+		Key: resp.Key,
+		Exp: resp.Expiration.Milliseconds(),
+		Url: resp.Url,
+	})
 }

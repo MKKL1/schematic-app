@@ -3,8 +3,11 @@ package command
 import (
 	"context"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
+	"github.com/MKKL1/schematic-app/server/internal/services/file-service/domain/file"
+	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
 	"io"
+	"time"
 )
 
 type UploadTempFileParams struct {
@@ -14,7 +17,7 @@ type UploadTempFileParams struct {
 	ContentType string
 }
 
-type UploadTempFileHandler decorator.CommandHandler[UploadTempFileParams, int64]
+type UploadTempFileHandler decorator.CommandHandler[UploadTempFileParams, *file.TempFileCreated]
 
 type uploadTempFileHandler struct {
 	minioClient *minio.Client
@@ -26,11 +29,22 @@ func NewUploadTempFileHandler(minioClient *minio.Client) UploadTempFileHandler {
 	}
 }
 
-func (u uploadTempFileHandler) Handle(ctx context.Context, cmd UploadTempFileParams) (int64, error) {
-	info, err := u.minioClient.PutObject(ctx, "temp-bucket", cmd.FileName, cmd.Reader, -1, minio.PutObjectOptions{ContentType: cmd.ContentType})
+func (u uploadTempFileHandler) Handle(ctx context.Context, cmd UploadTempFileParams) (*file.TempFileCreated, error) {
+	info, err := u.minioClient.PutObject(ctx, "temp-bucket", uuid.New().String(), cmd.Reader, -1, minio.PutObjectOptions{ContentType: cmd.ContentType})
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	return info.Size, nil
+	urlExpiry := time.Hour
+	// Generate the presigned URL.
+	presignedUrl, err := u.minioClient.PresignedGetObject(ctx, "temp-bucket", info.Key, urlExpiry, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return &file.TempFileCreated{
+		Key:        info.Key,
+		Expiration: urlExpiry,
+		Url:        presignedUrl.String(),
+	}, nil
 }
