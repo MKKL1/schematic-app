@@ -10,6 +10,7 @@ import (
 
 type TmpFile struct {
 	FileHash    string
+	StoreKey    string
 	FileName    string
 	ContentType string
 	FileSize    int64

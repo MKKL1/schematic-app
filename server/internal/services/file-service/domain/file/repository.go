@@ -7,6 +7,7 @@ import (
 
 type TempFile struct {
 	FileHash    string
+	Key         string
 	FileName    string
 	ContentType string
 	FileSize    int64
@@ -17,6 +18,7 @@ type TempFile struct {
 
 type CreateTempFileParams struct {
 	FileHash    string
+	Key         string
 	FileName    string
 	ContentType string
 	FileSize    int64
@@ -25,11 +27,12 @@ type CreateTempFileParams struct {
 
 type ExpiredFilesRow struct {
 	FileHash  string
+	Key       string
 	ExpiresAt time.Time
 }
 
 type Repository interface {
 	GetTempFile(ctx context.Context, fileHash string) (TempFile, error)
-	CreateTempFile(ctx context.Context, params CreateTempFileParams) (TempFile, error)
+	CreateTempFile(ctx context.Context, params CreateTempFileParams) (string, error)
 	GetExpiredFiles(ctx context.Context) ([]ExpiredFilesRow, error)
 }

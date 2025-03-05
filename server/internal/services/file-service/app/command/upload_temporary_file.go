@@ -1,9 +1,11 @@
 package command
 
 import (
+	"bytes"
 	"context"
-	"crypto/sha256"
+	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/domain/file"
 	"github.com/google/uuid"
@@ -15,7 +17,6 @@ import (
 type UploadTempFileParams struct {
 	Reader      io.Reader
 	FileName    string
-	FileSize    int64
 	ContentType string
 }
 
@@ -31,34 +32,56 @@ func NewUploadTempFileHandler(minioClient *minio.Client, repo file.Repository) U
 }
 
 func (u uploadTempFileHandler) Handle(ctx context.Context, cmd UploadTempFileParams) (*file.TempFileCreated, error) {
-	hasher := sha256.New()
-	teeReader := io.TeeReader(cmd.Reader, hasher)
-	_, err := u.repo.CreateTempFile(ctx, file.CreateTempFileParams{
-		FileHash:    hex.EncodeToString(hasher.Sum(nil)),
+	objectKey := uuid.New().String()
+
+	// Create an in-memory buffer to hold the file data.
+	var buf bytes.Buffer
+
+	// Create a hasher and a MultiWriter that writes to both the buffer and the hash.
+	hasher := md5.New()
+	mw := io.MultiWriter(&buf, hasher)
+
+	// Read all file data from cmd.Reader into the buffer while computing the hash.
+	if _, err := io.Copy(mw, cmd.Reader); err != nil {
+		return nil, fmt.Errorf("failed to read input data: %w", err)
+	}
+
+	expiresAt := time.Now().Add(time.Hour)
+
+	// Compute the file hash.
+	fileHash := hex.EncodeToString(hasher.Sum(nil))
+
+	verifiedObjectKey, err := u.repo.CreateTempFile(ctx, file.CreateTempFileParams{
+		FileHash:    fileHash,
+		Key:         objectKey,
 		FileName:    cmd.FileName,
 		ContentType: cmd.ContentType,
-		FileSize:    cmd.FileSize,
-		ExpiresAt:   time.Now().Add(time.Hour),
+		FileSize:    int64(buf.Len()),
+		ExpiresAt:   expiresAt,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	info, err := u.minioClient.PutObject(ctx, "temp-bucket", uuid.New().String(), teeReader, -1, minio.PutObjectOptions{ContentType: cmd.ContentType})
-	if err != nil {
-		return nil, err
+	//If object key from database and new key are the same, it means that record is unique and file has to be saved
+	if verifiedObjectKey == objectKey {
+		reader := bytes.NewReader(buf.Bytes())
+		_, err := u.minioClient.PutObject(ctx, "temp-bucket", objectKey, reader, -1, minio.PutObjectOptions{ContentType: cmd.ContentType})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	urlExpiry := time.Hour
 	// Generate the presigned URL.
-	presignedUrl, err := u.minioClient.PresignedGetObject(ctx, "temp-bucket", info.Key, urlExpiry, nil)
+	presignedUrl, err := u.minioClient.PresignedGetObject(ctx, "temp-bucket", verifiedObjectKey, urlExpiry, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	return &file.TempFileCreated{
-		Key:        info.Key,
-		Expiration: urlExpiry,
+		Key:        verifiedObjectKey,
+		Expiration: expiresAt,
 		Url:        presignedUrl.String(),
 	}, nil
 }

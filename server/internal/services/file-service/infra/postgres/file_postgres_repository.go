@@ -24,9 +24,10 @@ func (f FilePostgresRepository) GetTempFile(ctx context.Context, fileHash string
 	return toDto(retrievedFile), nil
 }
 
-func (f FilePostgresRepository) CreateTempFile(ctx context.Context, params file.CreateTempFileParams) (file.TempFile, error) {
-	createdFile, err := f.queries.CreateFile(ctx, db.CreateFileParams{
+func (f FilePostgresRepository) CreateTempFile(ctx context.Context, params file.CreateTempFileParams) (string, error) {
+	key, err := f.queries.CreateFile(ctx, db.CreateFileParams{
 		FileHash:    params.FileHash,
+		StoreKey:    params.Key,
 		FileName:    params.FileName,
 		ContentType: params.ContentType,
 		FileSize:    params.FileSize,
@@ -35,11 +36,12 @@ func (f FilePostgresRepository) CreateTempFile(ctx context.Context, params file.
 			Valid: true,
 		},
 	})
+
 	if err != nil {
-		return file.TempFile{}, err
+		return key, err
 	}
 
-	return toDto(createdFile), nil
+	return key, nil
 }
 
 func (f FilePostgresRepository) GetExpiredFiles(ctx context.Context) ([]file.ExpiredFilesRow, error) {

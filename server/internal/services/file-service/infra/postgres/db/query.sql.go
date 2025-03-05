@@ -12,42 +12,39 @@ import (
 )
 
 const createFile = `-- name: CreateFile :one
-INSERT INTO tmp_file (file_hash, file_name, content_type, file_size, expires_at)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING file_hash, file_name, content_type, file_size, expires_at, created_at, updated_at
+INSERT INTO tmp_file (file_hash, store_key, file_name, content_type, file_size, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (file_hash) DO UPDATE
+    SET expires_at = EXCLUDED.expires_at,
+        updated_at = NOW()
+RETURNING store_key
 `
 
 type CreateFileParams struct {
 	FileHash    string
+	StoreKey    string
 	FileName    string
 	ContentType string
 	FileSize    int64
 	ExpiresAt   pgtype.Timestamptz
 }
 
-func (q *Queries) CreateFile(ctx context.Context, arg CreateFileParams) (TmpFile, error) {
+func (q *Queries) CreateFile(ctx context.Context, arg CreateFileParams) (string, error) {
 	row := q.db.QueryRow(ctx, createFile,
 		arg.FileHash,
+		arg.StoreKey,
 		arg.FileName,
 		arg.ContentType,
 		arg.FileSize,
 		arg.ExpiresAt,
 	)
-	var i TmpFile
-	err := row.Scan(
-		&i.FileHash,
-		&i.FileName,
-		&i.ContentType,
-		&i.FileSize,
-		&i.ExpiresAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+	var store_key string
+	err := row.Scan(&store_key)
+	return store_key, err
 }
 
 const getFileByHash = `-- name: GetFileByHash :one
-SELECT file_hash, file_name, content_type, file_size, expires_at, created_at, updated_at FROM tmp_file
+SELECT file_hash, store_key, file_name, content_type, file_size, expires_at, created_at, updated_at FROM tmp_file
 WHERE file_hash = $1
 `
 
@@ -56,6 +53,7 @@ func (q *Queries) GetFileByHash(ctx context.Context, fileHash string) (TmpFile, 
 	var i TmpFile
 	err := row.Scan(
 		&i.FileHash,
+		&i.StoreKey,
 		&i.FileName,
 		&i.ContentType,
 		&i.FileSize,

@@ -30,8 +30,6 @@ func (g GrpcServer) UploadTempFile(stream grpc.ClientStreamingServer[genproto.Up
 		return status.Error(codes.InvalidArgument, "metadata expected as first message")
 	}
 
-	// Use file size and filename from metadata.
-	fileSize := metadata.Size
 	objectName := metadata.FileName // Use the filename provided in metadata
 
 	// Create a pipe to stream file data.
@@ -74,7 +72,6 @@ func (g GrpcServer) UploadTempFile(stream grpc.ClientStreamingServer[genproto.Up
 		stream.Context(), command.UploadTempFileParams{
 			Reader:      pr,
 			FileName:    objectName,
-			FileSize:    fileSize,
 			ContentType: metadata.ContentType,
 		},
 	)
@@ -91,7 +88,7 @@ func (g GrpcServer) UploadTempFile(stream grpc.ClientStreamingServer[genproto.Up
 
 	return stream.SendAndClose(&genproto.UploadTempFileResponse{
 		Key: resp.Key,
-		Exp: resp.Expiration.Milliseconds(),
+		Exp: resp.Expiration.Unix(),
 		Url: resp.Url,
 	})
 }
