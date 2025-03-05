@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/app"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/app/command"
+	"github.com/MKKL1/schematic-app/server/internal/services/file-service/infra/postgres"
+	"github.com/MKKL1/schematic-app/server/internal/services/file-service/infra/postgres/db"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"log"
@@ -24,6 +27,20 @@ func NewMinioClient(endpoint, accessKeyID, secretAccessKey string, useSSL bool) 
 }
 
 func NewApplication(ctx context.Context) app.Application {
+	dbPool, err := server.NewPostgreSQLClient(ctx, &server.PostgresConfig{
+		Port:     "5432",
+		Host:     "localhost",
+		Username: "root",
+		Password: "root",
+		Database: "sh_file",
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	queries := db.New(dbPool)
+	repo := postgres.NewFilePostgresRepository(queries)
+
 	endpoint := "localhost:9000"
 	accessKeyID := "GdD14n1Oxz2U5hfQhdHo"
 	secretAccessKey := "e1Peh4RLq7E4hgDW3GtV8nl4IaZjGrzDuS0WTPaB"
@@ -37,7 +54,7 @@ func NewApplication(ctx context.Context) app.Application {
 
 	return app.Application{
 		Commands: app.Commands{
-			UploadTempFile: command.NewUploadTempFileHandler(minioClient),
+			UploadTempFile: command.NewUploadTempFileHandler(minioClient, repo),
 		},
 		Queries: app.Queries{},
 	}
