@@ -4,11 +4,14 @@ import (
 	"context"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
 	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
-	"log"
+	"io"
 )
 
 type UploadTempFileParams struct {
+	Reader      io.Reader
+	FileName    string
+	FileSize    int64
+	ContentType string
 }
 
 type UploadTempFileHandler decorator.CommandHandler[UploadTempFileParams, int64]
@@ -17,12 +20,17 @@ type uploadTempFileHandler struct {
 	minioClient *minio.Client
 }
 
-func (u uploadTempFileHandler) Handle(ctx context.Context, cmd UploadTempFileParams) (int64, error) {
+func NewUploadTempFileHandler(minioClient *minio.Client) UploadTempFileHandler {
+	return uploadTempFileHandler{
+		minioClient: minioClient,
+	}
+}
 
-	info, err := u.minioClient.FPutObject(ctx, "", "", "", minio.PutObjectOptions{ContentType: "contentType"})
+func (u uploadTempFileHandler) Handle(ctx context.Context, cmd UploadTempFileParams) (int64, error) {
+	info, err := u.minioClient.PutObject(ctx, "temp-bucket", cmd.FileName, cmd.Reader, -1, minio.PutObjectOptions{ContentType: cmd.ContentType})
 	if err != nil {
-		log.Fatalln(err)
+		return 0, err
 	}
 
-	u.minioClient.PutObject()
+	return info.Size, nil
 }

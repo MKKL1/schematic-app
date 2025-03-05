@@ -9,6 +9,15 @@ service FileService {
   rpc UploadTempFile(stream UploadTempRequest) returns (google.protobuf.Empty);
 }
 
+message FileMetadata {
+  string file_name = 1;
+  int64 size = 2;
+  string content_type = 3;
+}
+
 message UploadTempRequest {
-  bytes data = 1;
+  oneof payload {
+    FileMetadata metadata = 1;
+    bytes data = 2;
+  }
 }
