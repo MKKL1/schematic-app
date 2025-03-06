@@ -1,6 +1,6 @@
 create table tmp_file (
     file_hash text primary key,
-    store_key text not null,
+    store_key text unique not null,
     file_name text not null,
     content_type text not null,
     file_size bigint not null,

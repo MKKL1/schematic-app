@@ -43,6 +43,16 @@ func (q *Queries) CreateFile(ctx context.Context, arg CreateFileParams) (string,
 	return store_key, err
 }
 
+const deleteExpiredFilesByKey = `-- name: DeleteExpiredFilesByKey :exec
+DELETE FROM tmp_file
+WHERE store_key = ANY($1::text[])
+`
+
+func (q *Queries) DeleteExpiredFilesByKey(ctx context.Context, dollar_1 []string) error {
+	_, err := q.db.Exec(ctx, deleteExpiredFilesByKey, dollar_1)
+	return err
+}
+
 const getFileByHash = `-- name: GetFileByHash :one
 SELECT file_hash, store_key, file_name, content_type, file_size, expires_at, created_at, updated_at FROM tmp_file
 WHERE file_hash = $1
@@ -64,14 +74,36 @@ func (q *Queries) GetFileByHash(ctx context.Context, fileHash string) (TmpFile, 
 	return i, err
 }
 
+const getFileByKey = `-- name: GetFileByKey :one
+SELECT file_hash, store_key, file_name, content_type, file_size, expires_at, created_at, updated_at FROM tmp_file
+WHERE store_key = $1
+`
+
+func (q *Queries) GetFileByKey(ctx context.Context, storeKey string) (TmpFile, error) {
+	row := q.db.QueryRow(ctx, getFileByKey, storeKey)
+	var i TmpFile
+	err := row.Scan(
+		&i.FileHash,
+		&i.StoreKey,
+		&i.FileName,
+		&i.ContentType,
+		&i.FileSize,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const listExpiredFiles = `-- name: ListExpiredFiles :many
-SELECT file_hash, expires_at
+SELECT file_hash, store_key, expires_at
 FROM tmp_file
 WHERE expires_at < NOW()
 `
 
 type ListExpiredFilesRow struct {
 	FileHash  string
+	StoreKey  string
 	ExpiresAt pgtype.Timestamptz
 }
 
@@ -84,7 +116,7 @@ func (q *Queries) ListExpiredFiles(ctx context.Context) ([]ListExpiredFilesRow, 
 	var items []ListExpiredFilesRow
 	for rows.Next() {
 		var i ListExpiredFilesRow
-		if err := rows.Scan(&i.FileHash, &i.ExpiresAt); err != nil {
+		if err := rows.Scan(&i.FileHash, &i.StoreKey, &i.ExpiresAt); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

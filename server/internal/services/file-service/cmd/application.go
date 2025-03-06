@@ -54,7 +54,8 @@ func NewApplication(ctx context.Context) app.Application {
 
 	return app.Application{
 		Commands: app.Commands{
-			UploadTempFile: command.NewUploadTempFileHandler(minioClient, repo),
+			UploadTempFile:     command.NewUploadTempFileHandler(minioClient, repo),
+			DeleteExpiredFiles: command.NewDeleteExpiredFilesHandler(minioClient, repo),
 		},
 		Queries: app.Queries{},
 	}

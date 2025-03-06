@@ -8,7 +8,8 @@ type Application struct {
 }
 
 type Commands struct {
-	UploadTempFile command.UploadTempFileHandler
+	UploadTempFile     command.UploadTempFileHandler
+	DeleteExpiredFiles command.DeleteExpiredFilesHandler
 }
 
 type Queries struct {

@@ -10,7 +10,15 @@ RETURNING store_key;
 SELECT * FROM tmp_file
 WHERE file_hash = $1;
 
+-- name: GetFileByKey :one
+SELECT * FROM tmp_file
+WHERE store_key = $1;
+
 -- name: ListExpiredFiles :many
-SELECT file_hash, expires_at
+SELECT file_hash, store_key, expires_at
 FROM tmp_file
 WHERE expires_at < NOW();
+
+-- name: DeleteExpiredFilesByKey :exec
+DELETE FROM tmp_file
+WHERE store_key = ANY($1::text[]);

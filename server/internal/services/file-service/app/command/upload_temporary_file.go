@@ -66,9 +66,13 @@ func (u uploadTempFileHandler) Handle(ctx context.Context, cmd UploadTempFilePar
 	//If object key from database and new key are the same, it means that record is unique and file has to be saved
 	if verifiedObjectKey == objectKey {
 		reader := bytes.NewReader(buf.Bytes())
-		_, err := u.minioClient.PutObject(ctx, "temp-bucket", objectKey, reader, -1, minio.PutObjectOptions{ContentType: cmd.ContentType})
+		info, err := u.minioClient.PutObject(ctx, "temp-bucket", objectKey, reader, -1, minio.PutObjectOptions{ContentType: cmd.ContentType})
 		if err != nil {
 			return nil, err
+		}
+		//This approach requires minio to not change the key
+		if info.Key != objectKey {
+			return nil, fmt.Errorf("key does not match")
 		}
 	}
 

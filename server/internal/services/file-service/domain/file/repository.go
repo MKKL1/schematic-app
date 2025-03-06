@@ -35,4 +35,5 @@ type Repository interface {
 	GetTempFile(ctx context.Context, fileHash string) (TempFile, error)
 	CreateTempFile(ctx context.Context, params CreateTempFileParams) (string, error)
 	GetExpiredFiles(ctx context.Context) ([]ExpiredFilesRow, error)
+	DeleteExpiredFilesByKey(ctx context.Context, keys []string) error
 }

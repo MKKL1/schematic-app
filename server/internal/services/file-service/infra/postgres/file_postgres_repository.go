@@ -50,15 +50,25 @@ func (f FilePostgresRepository) GetExpiredFiles(ctx context.Context) ([]file.Exp
 		return nil, err
 	}
 
-	var expiredFiles []file.ExpiredFilesRow
+	expiredFiles := make([]file.ExpiredFilesRow, len(files))
 	for i, k := range files {
 		expiredFiles[i] = file.ExpiredFilesRow{
 			FileHash:  k.FileHash,
+			Key:       k.StoreKey,
 			ExpiresAt: k.ExpiresAt.Time,
 		}
 	}
 
 	return expiredFiles, nil
+}
+
+func (f FilePostgresRepository) DeleteExpiredFilesByKey(ctx context.Context, keys []string) error {
+	err := f.queries.DeleteExpiredFilesByKey(ctx, keys)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func toDto(model db.TmpFile) file.TempFile {

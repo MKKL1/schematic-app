@@ -7,6 +7,7 @@ option go_package = "github.com/MKKL1/schematic-app/server/internal/pkg/genproto
 
 service FileService {
   rpc UploadTempFile(stream UploadTempRequest) returns (UploadTempFileResponse);
+  rpc DeleteExpiredFiles(google.protobuf.Empty) returns (google.protobuf.Empty);
 }
 
 message FileMetadata {
