@@ -11,83 +11,43 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createFile = `-- name: CreateFile :one
-INSERT INTO tmp_file (file_hash, store_key, file_name, content_type, file_size, expires_at)
-VALUES ($1, $2, $3, $4, $5, $6)
-ON CONFLICT (file_hash) DO UPDATE
-    SET expires_at = EXCLUDED.expires_at,
-        updated_at = NOW()
-RETURNING store_key
+const createFile = `-- name: CreateFile :exec
+INSERT INTO tmp_file (store_key, file_name, expires_at)
+VALUES ($1, $2, $3)
 `
 
 type CreateFileParams struct {
-	FileHash    string
-	StoreKey    string
-	FileName    string
-	ContentType string
-	FileSize    int64
-	ExpiresAt   pgtype.Timestamptz
+	StoreKey  string
+	FileName  string
+	ExpiresAt pgtype.Timestamptz
 }
 
-func (q *Queries) CreateFile(ctx context.Context, arg CreateFileParams) (string, error) {
-	row := q.db.QueryRow(ctx, createFile,
-		arg.FileHash,
-		arg.StoreKey,
-		arg.FileName,
-		arg.ContentType,
-		arg.FileSize,
-		arg.ExpiresAt,
-	)
-	var store_key string
-	err := row.Scan(&store_key)
-	return store_key, err
+func (q *Queries) CreateFile(ctx context.Context, arg CreateFileParams) error {
+	_, err := q.db.Exec(ctx, createFile, arg.StoreKey, arg.FileName, arg.ExpiresAt)
+	return err
 }
 
-const deleteExpiredFilesByKey = `-- name: DeleteExpiredFilesByKey :exec
+const deleteExpiredFiles = `-- name: DeleteExpiredFiles :exec
 DELETE FROM tmp_file
 WHERE store_key = ANY($1::text[])
 `
 
-func (q *Queries) DeleteExpiredFilesByKey(ctx context.Context, dollar_1 []string) error {
-	_, err := q.db.Exec(ctx, deleteExpiredFilesByKey, dollar_1)
+func (q *Queries) DeleteExpiredFiles(ctx context.Context, dollar_1 []string) error {
+	_, err := q.db.Exec(ctx, deleteExpiredFiles, dollar_1)
 	return err
 }
 
-const getFileByHash = `-- name: GetFileByHash :one
-SELECT file_hash, store_key, file_name, content_type, file_size, expires_at, created_at, updated_at FROM tmp_file
-WHERE file_hash = $1
-`
-
-func (q *Queries) GetFileByHash(ctx context.Context, fileHash string) (TmpFile, error) {
-	row := q.db.QueryRow(ctx, getFileByHash, fileHash)
-	var i TmpFile
-	err := row.Scan(
-		&i.FileHash,
-		&i.StoreKey,
-		&i.FileName,
-		&i.ContentType,
-		&i.FileSize,
-		&i.ExpiresAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const getFileByKey = `-- name: GetFileByKey :one
-SELECT file_hash, store_key, file_name, content_type, file_size, expires_at, created_at, updated_at FROM tmp_file
+const getFile = `-- name: GetFile :one
+SELECT store_key, file_name, expires_at, created_at, updated_at FROM tmp_file
 WHERE store_key = $1
 `
 
-func (q *Queries) GetFileByKey(ctx context.Context, storeKey string) (TmpFile, error) {
-	row := q.db.QueryRow(ctx, getFileByKey, storeKey)
+func (q *Queries) GetFile(ctx context.Context, storeKey string) (TmpFile, error) {
+	row := q.db.QueryRow(ctx, getFile, storeKey)
 	var i TmpFile
 	err := row.Scan(
-		&i.FileHash,
 		&i.StoreKey,
 		&i.FileName,
-		&i.ContentType,
-		&i.FileSize,
 		&i.ExpiresAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -96,13 +56,12 @@ func (q *Queries) GetFileByKey(ctx context.Context, storeKey string) (TmpFile, e
 }
 
 const listExpiredFiles = `-- name: ListExpiredFiles :many
-SELECT file_hash, store_key, expires_at
+SELECT store_key, expires_at
 FROM tmp_file
 WHERE expires_at < NOW()
 `
 
 type ListExpiredFilesRow struct {
-	FileHash  string
 	StoreKey  string
 	ExpiresAt pgtype.Timestamptz
 }
@@ -116,7 +75,7 @@ func (q *Queries) ListExpiredFiles(ctx context.Context) ([]ListExpiredFilesRow, 
 	var items []ListExpiredFilesRow
 	for rows.Next() {
 		var i ListExpiredFilesRow
-		if err := rows.Scan(&i.FileHash, &i.StoreKey, &i.ExpiresAt); err != nil {
+		if err := rows.Scan(&i.StoreKey, &i.ExpiresAt); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

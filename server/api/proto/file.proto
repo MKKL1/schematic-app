@@ -12,8 +12,7 @@ service FileService {
 
 message FileMetadata {
   string file_name = 1;
-  int64 size = 2;
-  string content_type = 3;
+  string content_type = 2;
 }
 
 message UploadTempRequest {
@@ -26,5 +25,4 @@ message UploadTempRequest {
 message UploadTempFileResponse {
   string key = 1;
   int64 exp = 2;
-  string url = 3;
 }

@@ -9,12 +9,9 @@ import (
 )
 
 type TmpFile struct {
-	FileHash    string
-	StoreKey    string
-	FileName    string
-	ContentType string
-	FileSize    int64
-	ExpiresAt   pgtype.Timestamptz
-	CreatedAt   pgtype.Timestamptz
-	UpdatedAt   pgtype.Timestamptz
+	StoreKey  string
+	FileName  string
+	ExpiresAt pgtype.Timestamptz
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
 }

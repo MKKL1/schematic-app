@@ -15,8 +15,8 @@ func NewFilePostgresRepository(queries *db.Queries) *FilePostgresRepository {
 	return &FilePostgresRepository{queries}
 }
 
-func (f FilePostgresRepository) GetTempFile(ctx context.Context, fileHash string) (file.TempFile, error) {
-	retrievedFile, err := f.queries.GetFileByHash(ctx, fileHash)
+func (f FilePostgresRepository) GetTempFile(ctx context.Context, key string) (file.TempFile, error) {
+	retrievedFile, err := f.queries.GetFile(ctx, key)
 	if err != nil {
 		return file.TempFile{}, err
 	}
@@ -24,24 +24,17 @@ func (f FilePostgresRepository) GetTempFile(ctx context.Context, fileHash string
 	return toDto(retrievedFile), nil
 }
 
-func (f FilePostgresRepository) CreateTempFile(ctx context.Context, params file.CreateTempFileParams) (string, error) {
-	key, err := f.queries.CreateFile(ctx, db.CreateFileParams{
-		FileHash:    params.FileHash,
-		StoreKey:    params.Key,
-		FileName:    params.FileName,
-		ContentType: params.ContentType,
-		FileSize:    params.FileSize,
+func (f FilePostgresRepository) CreateTempFile(ctx context.Context, params file.CreateTempFileParams) error {
+	err := f.queries.CreateFile(ctx, db.CreateFileParams{
+		StoreKey: params.Key,
+		FileName: params.FileName,
 		ExpiresAt: pgtype.Timestamptz{
 			Time:  params.ExpiresAt,
 			Valid: true,
 		},
 	})
 
-	if err != nil {
-		return key, err
-	}
-
-	return key, nil
+	return err
 }
 
 func (f FilePostgresRepository) GetExpiredFiles(ctx context.Context) ([]file.ExpiredFilesRow, error) {
@@ -53,7 +46,6 @@ func (f FilePostgresRepository) GetExpiredFiles(ctx context.Context) ([]file.Exp
 	expiredFiles := make([]file.ExpiredFilesRow, len(files))
 	for i, k := range files {
 		expiredFiles[i] = file.ExpiredFilesRow{
-			FileHash:  k.FileHash,
 			Key:       k.StoreKey,
 			ExpiresAt: k.ExpiresAt.Time,
 		}
@@ -63,7 +55,7 @@ func (f FilePostgresRepository) GetExpiredFiles(ctx context.Context) ([]file.Exp
 }
 
 func (f FilePostgresRepository) DeleteExpiredFilesByKey(ctx context.Context, keys []string) error {
-	err := f.queries.DeleteExpiredFilesByKey(ctx, keys)
+	err := f.queries.DeleteExpiredFiles(ctx, keys)
 	if err != nil {
 		return err
 	}
@@ -73,12 +65,9 @@ func (f FilePostgresRepository) DeleteExpiredFilesByKey(ctx context.Context, key
 
 func toDto(model db.TmpFile) file.TempFile {
 	return file.TempFile{
-		FileHash:    model.FileHash,
-		FileName:    model.FileName,
-		ContentType: model.ContentType,
-		FileSize:    model.FileSize,
-		ExpiresAt:   model.ExpiresAt.Time,
-		CreatedAt:   model.CreatedAt.Time,
-		UpdatedAt:   model.UpdatedAt.Time,
+		FileName:  model.FileName,
+		ExpiresAt: model.ExpiresAt.Time,
+		CreatedAt: model.CreatedAt.Time,
+		UpdatedAt: model.UpdatedAt.Time,
 	}
 }

@@ -91,7 +91,6 @@ func (g GrpcServer) UploadTempFile(stream grpc.ClientStreamingServer[genproto.Up
 	return stream.SendAndClose(&genproto.UploadTempFileResponse{
 		Key: resp.Key,
 		Exp: resp.Expiration.Unix(),
-		Url: resp.Url,
 	})
 }
 

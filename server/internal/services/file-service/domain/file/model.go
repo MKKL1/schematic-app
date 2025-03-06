@@ -7,5 +7,4 @@ import (
 type TempFileCreated struct {
 	Key        string
 	Expiration time.Time
-	Url        string
 }
