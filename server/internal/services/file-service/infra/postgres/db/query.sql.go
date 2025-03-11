@@ -12,42 +12,77 @@ import (
 )
 
 const createFile = `-- name: CreateFile :exec
-INSERT INTO tmp_file (store_key, file_name, expires_at)
+INSERT INTO file (hash, file_size, content_type)
 VALUES ($1, $2, $3)
 `
 
 type CreateFileParams struct {
-	StoreKey  string
-	FileName  string
-	ExpiresAt pgtype.Timestamptz
+	Hash        string
+	FileSize    int32
+	ContentType string
 }
 
 func (q *Queries) CreateFile(ctx context.Context, arg CreateFileParams) error {
-	_, err := q.db.Exec(ctx, createFile, arg.StoreKey, arg.FileName, arg.ExpiresAt)
+	_, err := q.db.Exec(ctx, createFile, arg.Hash, arg.FileSize, arg.ContentType)
 	return err
 }
 
-const deleteExpiredFiles = `-- name: DeleteExpiredFiles :exec
+const createTempFile = `-- name: CreateTempFile :exec
+INSERT INTO tmp_file (store_key, file_name, content_type, expires_at)
+VALUES ($1, $2, $3, $4)
+`
+
+type CreateTempFileParams struct {
+	StoreKey    string
+	FileName    string
+	ContentType string
+	ExpiresAt   pgtype.Timestamptz
+}
+
+func (q *Queries) CreateTempFile(ctx context.Context, arg CreateTempFileParams) error {
+	_, err := q.db.Exec(ctx, createTempFile,
+		arg.StoreKey,
+		arg.FileName,
+		arg.ContentType,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
+const deleteTmpFiles = `-- name: DeleteTmpFiles :exec
 DELETE FROM tmp_file
 WHERE store_key = ANY($1::text[])
 `
 
-func (q *Queries) DeleteExpiredFiles(ctx context.Context, dollar_1 []string) error {
-	_, err := q.db.Exec(ctx, deleteExpiredFiles, dollar_1)
+func (q *Queries) DeleteTmpFiles(ctx context.Context, dollar_1 []string) error {
+	_, err := q.db.Exec(ctx, deleteTmpFiles, dollar_1)
 	return err
 }
 
-const getFile = `-- name: GetFile :one
-SELECT store_key, file_name, expires_at, created_at, updated_at FROM tmp_file
+const fileExistsByHash = `-- name: FileExistsByHash :one
+SELECT exists(SELECT 1 FROM file
+              WHERE hash = $1)
+`
+
+func (q *Queries) FileExistsByHash(ctx context.Context, hash string) (bool, error) {
+	row := q.db.QueryRow(ctx, fileExistsByHash, hash)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const getTempFile = `-- name: GetTempFile :one
+SELECT store_key, file_name, content_type, expires_at, created_at, updated_at FROM tmp_file
 WHERE store_key = $1
 `
 
-func (q *Queries) GetFile(ctx context.Context, storeKey string) (TmpFile, error) {
-	row := q.db.QueryRow(ctx, getFile, storeKey)
+func (q *Queries) GetTempFile(ctx context.Context, storeKey string) (TmpFile, error) {
+	row := q.db.QueryRow(ctx, getTempFile, storeKey)
 	var i TmpFile
 	err := row.Scan(
 		&i.StoreKey,
 		&i.FileName,
+		&i.ContentType,
 		&i.ExpiresAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,

@@ -11,13 +11,17 @@ create table post
 
 create table gallery_image
 (
-    image_id bigint not null
-        constraint gallery_image_pk
-            primary key,
     post_id  bigint
         constraint gallery_image_post_id_fk
             references post,
+    file_id text not null,
+    "order" smallint not null,
     "desc"   text
+);
+
+create table attached_files
+(
+
 );
 
 create table categories (

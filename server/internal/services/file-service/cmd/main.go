@@ -7,6 +7,7 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/ports"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
 	"google.golang.org/grpc"
+	"net/http"
 	"os"
 	"os/signal"
 	"time"
@@ -25,6 +26,14 @@ func main() {
 			genproto.RegisterFileServiceServer(server, srv)
 		})
 
+		httpServer := ports.HttpServer{
+			App: application,
+		}
+		http.HandleFunc("/upload-tmp", httpServer.UploadMultipartHandler)
+		err := http.ListenAndServe(":8006", nil)
+		if err != nil {
+			return
+		}
 	}()
 
 	<-ctx.Done()

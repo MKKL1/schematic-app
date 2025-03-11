@@ -16,7 +16,7 @@ func NewFilePostgresRepository(queries *db.Queries) *FilePostgresRepository {
 }
 
 func (f FilePostgresRepository) GetTempFile(ctx context.Context, key string) (file.TempFile, error) {
-	retrievedFile, err := f.queries.GetFile(ctx, key)
+	retrievedFile, err := f.queries.GetTempFile(ctx, key)
 	if err != nil {
 		return file.TempFile{}, err
 	}
@@ -25,7 +25,7 @@ func (f FilePostgresRepository) GetTempFile(ctx context.Context, key string) (fi
 }
 
 func (f FilePostgresRepository) CreateTempFile(ctx context.Context, params file.CreateTempFileParams) error {
-	err := f.queries.CreateFile(ctx, db.CreateFileParams{
+	err := f.queries.CreateTempFile(ctx, db.CreateTempFileParams{
 		StoreKey: params.Key,
 		FileName: params.FileName,
 		ExpiresAt: pgtype.Timestamptz{
@@ -54,13 +54,27 @@ func (f FilePostgresRepository) GetExpiredFiles(ctx context.Context) ([]file.Exp
 	return expiredFiles, nil
 }
 
-func (f FilePostgresRepository) DeleteExpiredFilesByKey(ctx context.Context, keys []string) error {
+func (f FilePostgresRepository) DeleteTmpFilesByKey(ctx context.Context, keys []string) error {
 	err := f.queries.DeleteExpiredFiles(ctx, keys)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (f FilePostgresRepository) GetFileByHash(ctx context.Context, hash string) (file.PermFile, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (f FilePostgresRepository) FileExists(ctx context.Context, hash string) (bool, error) {
+	exists, err := f.FileExists(ctx, hash)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
 }
 
 func toDto(model db.TmpFile) file.TempFile {
