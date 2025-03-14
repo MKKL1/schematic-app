@@ -10,6 +10,8 @@ type Application struct {
 type Commands struct {
 	UploadTempFile     command.UploadTempFileHandler
 	DeleteExpiredFiles command.DeleteExpiredFilesHandler
+	CommitTempFile     command.CommitTempHandler
+	PostCreatedHandler command.PostCreatedHandler
 }
 
 type Queries struct {

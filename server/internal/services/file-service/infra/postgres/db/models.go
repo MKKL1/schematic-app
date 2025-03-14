@@ -17,10 +17,14 @@ type File struct {
 }
 
 type TmpFile struct {
-	StoreKey    string
-	FileName    string
-	ContentType string
-	ExpiresAt   pgtype.Timestamptz
-	CreatedAt   pgtype.Timestamptz
-	UpdatedAt   pgtype.Timestamptz
+	StoreKey           string
+	FileName           string
+	ContentType        string
+	Status             string
+	ErrorReason        *string
+	ProcessingAttempts pgtype.Int4
+	FinalHash          *string
+	ExpiresAt          pgtype.Timestamptz
+	CreatedAt          pgtype.Timestamptz
+	UpdatedAt          pgtype.Timestamptz
 }

@@ -72,7 +72,7 @@ func (q *Queries) FileExistsByHash(ctx context.Context, hash string) (bool, erro
 }
 
 const getTempFile = `-- name: GetTempFile :one
-SELECT store_key, file_name, content_type, expires_at, created_at, updated_at FROM tmp_file
+SELECT store_key, file_name, content_type, status, error_reason, processing_attempts, final_hash, expires_at, created_at, updated_at FROM tmp_file
 WHERE store_key = $1
 `
 
@@ -83,6 +83,10 @@ func (q *Queries) GetTempFile(ctx context.Context, storeKey string) (TmpFile, er
 		&i.StoreKey,
 		&i.FileName,
 		&i.ContentType,
+		&i.Status,
+		&i.ErrorReason,
+		&i.ProcessingAttempts,
+		&i.FinalHash,
 		&i.ExpiresAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,

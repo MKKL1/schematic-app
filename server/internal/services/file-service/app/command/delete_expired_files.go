@@ -74,7 +74,7 @@ func (d deleteExpiredFilesHandler) Handle(ctx context.Context, cmd DeleteExpired
 
 	// Remove only those records from the database whose files were successfully removed.
 	if len(keysToDelete) > 0 {
-		if err := d.repo.DeleteExpiredFilesByKey(ctx, keysToDelete); err != nil {
+		if err := d.repo.DeleteTmpFilesByKey(ctx, keysToDelete); err != nil {
 			return nil, err
 		}
 	}

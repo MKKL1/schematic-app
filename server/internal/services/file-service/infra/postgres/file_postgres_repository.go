@@ -5,6 +5,7 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/domain/file"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/infra/postgres/db"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/rs/zerolog/log"
 )
 
 type FilePostgresRepository struct {
@@ -55,7 +56,7 @@ func (f FilePostgresRepository) GetExpiredFiles(ctx context.Context) ([]file.Exp
 }
 
 func (f FilePostgresRepository) DeleteTmpFilesByKey(ctx context.Context, keys []string) error {
-	err := f.queries.DeleteExpiredFiles(ctx, keys)
+	err := f.queries.DeleteTmpFiles(ctx, keys)
 	if err != nil {
 		return err
 	}
@@ -77,11 +78,33 @@ func (f FilePostgresRepository) FileExists(ctx context.Context, hash string) (bo
 	return exists, nil
 }
 
+func (f FilePostgresRepository) CreateFile(ctx context.Context, params file.CreateFileParams) error {
+	log.Info().Msgf("Creating temporary file for hash %s", params.Hash)
+
+}
+
+func (f FilePostgresRepository) GetAndMarkTempFileProcessing(ctx context.Context, key string) (file.TempFile, error) {
+	log.Info().Msgf("Getting temporary file for hash %s", key)
+}
+
+func (f FilePostgresRepository) MarkTempFileFailed(ctx context.Context, key string, reason string) error {
+	log.Info().Msgf("Marking temporary file for hash %s failed", key)
+}
+
+func (f FilePostgresRepository) MarkTempFileProcessed(ctx context.Context, key string, finalHash string) error {
+	log.Info().Msgf("Marking temporary file for hash %s processed", key)
+}
+
 func toDto(model db.TmpFile) file.TempFile {
 	return file.TempFile{
-		FileName:  model.FileName,
-		ExpiresAt: model.ExpiresAt.Time,
-		CreatedAt: model.CreatedAt.Time,
-		UpdatedAt: model.UpdatedAt.Time,
+		Key:         model.StoreKey,
+		FileName:    model.FileName,
+		ContentType: model.ContentType,
+		Status:      model.Status,
+		ErrorReason: model.ErrorReason,
+		FinalHash:   model.FinalHash,
+		ExpiresAt:   model.ExpiresAt.Time,
+		CreatedAt:   model.CreatedAt.Time,
+		UpdatedAt:   model.UpdatedAt.Time,
 	}
 }
