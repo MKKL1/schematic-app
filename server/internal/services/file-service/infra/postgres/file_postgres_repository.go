@@ -5,7 +5,6 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/domain/file"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/infra/postgres/db"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/rs/zerolog/log"
 )
 
 type FilePostgresRepository struct {
@@ -70,7 +69,7 @@ func (f FilePostgresRepository) GetFileByHash(ctx context.Context, hash string) 
 }
 
 func (f FilePostgresRepository) FileExists(ctx context.Context, hash string) (bool, error) {
-	exists, err := f.FileExists(ctx, hash)
+	exists, err := f.queries.FileExistsByHash(ctx, hash)
 	if err != nil {
 		return false, err
 	}
@@ -79,20 +78,43 @@ func (f FilePostgresRepository) FileExists(ctx context.Context, hash string) (bo
 }
 
 func (f FilePostgresRepository) CreateFile(ctx context.Context, params file.CreateFileParams) error {
-	log.Info().Msgf("Creating temporary file for hash %s", params.Hash)
-
+	err := f.queries.CreateFile(ctx, db.CreateFileParams{
+		Hash:        params.Hash,
+		FileSize:    params.FileSize,
+		ContentType: params.ContentType,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (f FilePostgresRepository) GetAndMarkTempFileProcessing(ctx context.Context, key string) (file.TempFile, error) {
-	log.Info().Msgf("Getting temporary file for hash %s", key)
+	tmpFile, err := f.queries.GetAndMarkTempFileProcessing(ctx, key)
+	if err != nil {
+		return file.TempFile{}, err
+	}
+
+	return toDto(tmpFile), nil
 }
 
 func (f FilePostgresRepository) MarkTempFileFailed(ctx context.Context, key string, reason string) error {
-	log.Info().Msgf("Marking temporary file for hash %s failed", key)
+	err := f.queries.MarkTempFileFailed(ctx, key)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (f FilePostgresRepository) MarkTempFileProcessed(ctx context.Context, key string, finalHash string) error {
-	log.Info().Msgf("Marking temporary file for hash %s processed", key)
+	err := f.queries.MarkTempFileProcessed(ctx, db.MarkTempFileProcessedParams{
+		StoreKey:  key,
+		FinalHash: &finalHash,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func toDto(model db.TmpFile) file.TempFile {

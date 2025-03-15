@@ -14,9 +14,21 @@ type EventListener struct {
 	App app.Application
 }
 
-func NewEventListener(ctx context.Context, sub message.Subscriber) *EventListener {
+func NewEventListener(ctx context.Context, sub message.Subscriber, app app.Application) *EventListener {
 
-	return &EventListener{sub: sub}
+	//TODO bad way to register listeners
+	ob := &EventListener{sub: sub, App: app}
+	err := ob.registerPostCreatedEvent(ctx)
+	if err != nil {
+		return nil
+	}
+
+	err = ob.registerFileCommitCommandEvent(ctx)
+	if err != nil {
+		return nil
+	}
+
+	return ob
 }
 
 func (el EventListener) registerPostCreatedEvent(ctx context.Context) error {
@@ -28,10 +40,14 @@ func (el EventListener) registerPostCreatedEvent(ctx context.Context) error {
 	go func() {
 		for msg := range msgChannel {
 			var params command.PostCreatedParams
-			err := sonic.Unmarshal(msg.Payload, params)
+			err := sonic.Unmarshal(msg.Payload, &params)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to unmarshal post created event")
 				continue
+			}
+
+			if params.Files == nil {
+				log.Error().Msg("post created event has no files (nil pointer)")
 			}
 
 			_, err = el.App.Commands.PostCreatedHandler.Handle(ctx, params)
@@ -56,7 +72,7 @@ func (el EventListener) registerFileCommitCommandEvent(ctx context.Context) erro
 	go func() {
 		for msg := range msgChannel {
 			var params command.FileCommitCommandParams
-			err = sonic.Unmarshal(msg.Payload, params)
+			err = sonic.Unmarshal(msg.Payload, &params)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to unmarshal file commit command event")
 				continue

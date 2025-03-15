@@ -2,14 +2,16 @@ package command
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/domain/file"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+	"io"
 )
 
 type CommitTempParams struct {
@@ -38,16 +40,11 @@ func (m commitTempHandler) Handle(ctx context.Context, cmd CommitTempParams) (Co
 		return CommitTempResult{}, err
 	}
 
-	if tempFile.Status != "pending" {
-		return CommitTempResult{}, errors.Errorf("file %s is not pending", cmd.Key)
-	}
-
-	attributes, err := m.minioClient.GetObjectAttributes(ctx, "temp-bucket", tempFile.Key, minio.ObjectAttributesOptions{})
+	dstObjName, err := m.computeSHA256(ctx, tempFile.Key)
 	if err != nil {
 		return CommitTempResult{}, err
 	}
 
-	dstObjName := attributes.Checksum.ChecksumSHA256
 	exists, err := m.repo.FileExists(ctx, dstObjName)
 	if err != nil {
 		return CommitTempResult{}, err
@@ -73,16 +70,6 @@ func (m commitTempHandler) Handle(ctx context.Context, cmd CommitTempParams) (Co
 		log.Error().Err(err).Str("key", tempFile.Key).Msg("failed to mark temp file as processed")
 		//Since process is already pretty much done, finalize it anyway
 	}
-
-	//err = m.minioClient.RemoveObject(ctx, "temp-bucket", tempFile.Key, minio.RemoveObjectOptions{})
-	//if err != nil {
-	//	return CommitTempResult{}, err
-	//}
-	//
-	//err = m.repo.DeleteTmpFilesByKey(ctx, []string{tempFile.Key})
-	//if err != nil {
-	//	return CommitTempResult{}, err
-	//}
 
 	err = m.publishCreatedFileEvent(FileCreatedEvent{
 		TempID:  tempFile.Key,
@@ -132,6 +119,20 @@ func (m commitTempHandler) copyToPermanentStorage(
 	}
 
 	return info.Key, nil
+}
+
+func (m commitTempHandler) computeSHA256(ctx context.Context, object string) (string, error) {
+	obj, err := m.minioClient.GetObject(ctx, "temp-bucket", object, minio.GetObjectOptions{})
+	if err != nil {
+		return "", err
+	}
+	defer obj.Close()
+
+	hasher := sha256.New()
+	if _, err := io.Copy(hasher, obj); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
 type FileCreatedEvent struct {

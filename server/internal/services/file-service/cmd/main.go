@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/genproto"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
+	"github.com/MKKL1/schematic-app/server/internal/services/file-service/infra/kafka"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/ports"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
 	"google.golang.org/grpc"
@@ -26,11 +27,15 @@ func main() {
 			genproto.RegisterFileServiceServer(server, srv)
 		})
 
+		brokers := []string{"localhost:9092"}
+		sub, err := kafka.NewKafkaSubscriber(brokers)
+		ports.NewEventListener(ctx, sub, application)
+
 		httpServer := ports.HttpServer{
 			App: application,
 		}
 		http.HandleFunc("/upload-tmp", httpServer.UploadMultipartHandler)
-		err := http.ListenAndServe(":8006", nil)
+		err = http.ListenAndServe(":8006", nil)
 		if err != nil {
 			return
 		}

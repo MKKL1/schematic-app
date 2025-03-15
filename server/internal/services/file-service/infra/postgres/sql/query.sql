@@ -22,3 +22,23 @@ SELECT exists(SELECT 1 FROM file
 -- name: CreateFile :exec
 INSERT INTO file (hash, file_size, content_type)
 VALUES ($1, $2, $3);
+
+-- name: GetAndMarkTempFileProcessing :one
+UPDATE tmp_file
+SET status = 'processing', updated_at = NOW()
+WHERE store_key = $1 AND status = 'pending'
+RETURNING *;
+
+-- name: MarkTempFileFailed :exec
+UPDATE tmp_file
+SET status = 'failed',
+    processing_attempts = processing_attempts + 1,
+    updated_at = NOW()
+WHERE store_key = $1;
+
+-- name: MarkTempFileProcessed :exec
+UPDATE tmp_file
+SET status = 'processed',
+    final_hash = $2,
+    updated_at = NOW()
+WHERE store_key = $1;

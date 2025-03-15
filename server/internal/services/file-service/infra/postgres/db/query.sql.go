@@ -71,6 +71,31 @@ func (q *Queries) FileExistsByHash(ctx context.Context, hash string) (bool, erro
 	return exists, err
 }
 
+const getAndMarkTempFileProcessing = `-- name: GetAndMarkTempFileProcessing :one
+UPDATE tmp_file
+SET status = 'processing', updated_at = NOW()
+WHERE store_key = $1 AND status = 'pending'
+RETURNING store_key, file_name, content_type, status, error_reason, processing_attempts, final_hash, expires_at, created_at, updated_at
+`
+
+func (q *Queries) GetAndMarkTempFileProcessing(ctx context.Context, storeKey string) (TmpFile, error) {
+	row := q.db.QueryRow(ctx, getAndMarkTempFileProcessing, storeKey)
+	var i TmpFile
+	err := row.Scan(
+		&i.StoreKey,
+		&i.FileName,
+		&i.ContentType,
+		&i.Status,
+		&i.ErrorReason,
+		&i.ProcessingAttempts,
+		&i.FinalHash,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getTempFile = `-- name: GetTempFile :one
 SELECT store_key, file_name, content_type, status, error_reason, processing_attempts, final_hash, expires_at, created_at, updated_at FROM tmp_file
 WHERE store_key = $1
@@ -123,4 +148,35 @@ func (q *Queries) ListExpiredFiles(ctx context.Context) ([]ListExpiredFilesRow, 
 		return nil, err
 	}
 	return items, nil
+}
+
+const markTempFileFailed = `-- name: MarkTempFileFailed :exec
+UPDATE tmp_file
+SET status = 'failed',
+    processing_attempts = processing_attempts + 1,
+    updated_at = NOW()
+WHERE store_key = $1
+`
+
+func (q *Queries) MarkTempFileFailed(ctx context.Context, storeKey string) error {
+	_, err := q.db.Exec(ctx, markTempFileFailed, storeKey)
+	return err
+}
+
+const markTempFileProcessed = `-- name: MarkTempFileProcessed :exec
+UPDATE tmp_file
+SET status = 'processed',
+    final_hash = $2,
+    updated_at = NOW()
+WHERE store_key = $1
+`
+
+type MarkTempFileProcessedParams struct {
+	StoreKey  string
+	FinalHash *string
+}
+
+func (q *Queries) MarkTempFileProcessed(ctx context.Context, arg MarkTempFileProcessedParams) error {
+	_, err := q.db.Exec(ctx, markTempFileProcessed, arg.StoreKey, arg.FinalHash)
+	return err
 }
