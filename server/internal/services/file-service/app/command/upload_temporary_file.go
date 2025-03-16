@@ -2,10 +2,9 @@ package command
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/domain/file"
-	"github.com/MKKL1/schematic-app/server/internal/services/file-service/infra/kafka"
+	"github.com/ThreeDotsLabs/watermill/components/cqrs"
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
 	"io"
@@ -23,11 +22,11 @@ type UploadTempFileHandler decorator.CommandHandler[UploadTempFileParams, file.T
 type uploadTempFileHandler struct {
 	minioClient *minio.Client
 	repo        file.Repository
-	pub         *kafka.KafkaPublisher
+	eventBus    *cqrs.EventBus
 }
 
-func NewUploadTempFileHandler(minioClient *minio.Client, repo file.Repository, pub *kafka.KafkaPublisher) UploadTempFileHandler {
-	return uploadTempFileHandler{minioClient, repo, pub}
+func NewUploadTempFileHandler(minioClient *minio.Client, repo file.Repository, eventBus *cqrs.EventBus) UploadTempFileHandler {
+	return uploadTempFileHandler{minioClient, repo, eventBus}
 }
 
 func (u uploadTempFileHandler) Handle(ctx context.Context, cmd UploadTempFileParams) (file.TempFileCreated, error) {
@@ -48,7 +47,7 @@ func (u uploadTempFileHandler) Handle(ctx context.Context, cmd UploadTempFilePar
 		return file.TempFileCreated{}, err
 	}
 
-	err = publishFileUploadedEvent(u.pub, objectKey, cmd.FileName)
+	err = u.publishFileUploadedEvent(ctx, objectKey, cmd.FileName)
 	if err != nil {
 		return file.TempFileCreated{}, err
 	}
@@ -64,11 +63,7 @@ type FileUploadedEvent struct {
 	Path   string `json:"path"`
 }
 
-func publishFileUploadedEvent(publisher *kafka.KafkaPublisher, fileID, path string) error {
+func (u uploadTempFileHandler) publishFileUploadedEvent(ctx context.Context, fileID string, path string) error {
 	event := FileUploadedEvent{FileID: fileID, Path: path}
-	payload, err := json.Marshal(event)
-	if err != nil {
-		return err
-	}
-	return publisher.Publish("file.temp.created", payload)
+	return u.eventBus.Publish(ctx, event)
 }

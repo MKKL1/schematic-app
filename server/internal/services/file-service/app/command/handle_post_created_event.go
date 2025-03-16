@@ -3,9 +3,7 @@ package command
 import (
 	"context"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
-	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/bytedance/sonic"
+	"github.com/ThreeDotsLabs/watermill/components/cqrs"
 )
 
 //TODO refactor to better fit command pattern
@@ -21,22 +19,16 @@ type PostCreatedParams struct {
 type PostCreatedHandler decorator.CommandHandler[PostCreatedParams, any]
 
 type postCreatedHandler struct {
-	pub message.Publisher
+	eventBus *cqrs.EventBus
 }
 
-func NewPostCreatedHandler(pub message.Publisher) PostCreatedHandler {
-	return postCreatedHandler{pub}
+func NewPostCreatedHandler(eventBus *cqrs.EventBus) PostCreatedHandler {
+	return postCreatedHandler{eventBus}
 }
 
 func (m postCreatedHandler) Handle(ctx context.Context, cmd PostCreatedParams) (any, error) {
 	for _, f := range cmd.Files {
-		payload, err := sonic.Marshal(FileCommitCommandParams{Id: f})
-		if err != nil {
-			//TODO we don't have to fail entire event handle process
-			return nil, err
-		}
-		msg := message.NewMessage(watermill.NewUUID(), payload)
-		err = m.pub.Publish("file.cmd.commit", msg)
+		err := m.eventBus.Publish(ctx, FileCommitCommandParams{Id: f})
 		if err != nil {
 			return nil, err
 		}

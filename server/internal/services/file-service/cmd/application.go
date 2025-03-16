@@ -8,6 +8,7 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/infra/kafka"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/infra/postgres"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/infra/postgres/db"
+	"github.com/MKKL1/schematic-app/server/internal/services/file-service/ports"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"log"
@@ -53,19 +54,20 @@ func NewApplication(ctx context.Context) app.Application {
 
 	log.Printf("MinIO client initialized successfully at endpoint: %s", endpoint)
 
-	brokers := []string{"localhost:9092"}
-	publisher, err := kafka.NewKafkaPublisherInstance(brokers)
-	if err != nil {
-		log.Fatal("Failed to create Kafka publisher:", err)
-	}
+	cqrsHandler := kafka.NewCqrsHandler(kafka.KafkaConfig{Brokers: []string{"localhost:9092"}})
 
-	return app.Application{
+	a := app.Application{
 		Commands: app.Commands{
-			UploadTempFile:     command.NewUploadTempFileHandler(minioClient, repo, publisher),
+			UploadTempFile:     command.NewUploadTempFileHandler(minioClient, repo, cqrsHandler.EventBus),
 			DeleteExpiredFiles: command.NewDeleteExpiredFilesHandler(minioClient, repo),
-			CommitTempFile:     command.NewCommitTempHandler(minioClient, repo, publisher.Publisher),
-			PostCreatedHandler: command.NewPostCreatedHandler(publisher.Publisher),
+			CommitTempFile:     command.NewCommitTempHandler(minioClient, repo, cqrsHandler.EventBus),
+			PostCreatedHandler: command.NewPostCreatedHandler(cqrsHandler.EventBus),
 		},
 		Queries: app.Queries{},
 	}
+
+	ports.NewEventHandlers(a, cqrsHandler)
+	cqrsHandler.Run(ctx)
+
+	return a
 }

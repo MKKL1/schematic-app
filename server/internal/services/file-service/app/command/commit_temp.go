@@ -4,11 +4,9 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/domain/file"
-	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/google/uuid"
+	"github.com/ThreeDotsLabs/watermill/components/cqrs"
 	"github.com/minio/minio-go/v7"
 	"github.com/rs/zerolog/log"
 	"io"
@@ -27,11 +25,11 @@ type CommitTempHandler decorator.CommandHandler[CommitTempParams, CommitTempResu
 type commitTempHandler struct {
 	minioClient *minio.Client
 	repo        file.Repository
-	pub         message.Publisher
+	eventBus    *cqrs.EventBus
 }
 
-func NewCommitTempHandler(minioClient *minio.Client, repo file.Repository, pub message.Publisher) CommitTempHandler {
-	return commitTempHandler{minioClient, repo, pub}
+func NewCommitTempHandler(minioClient *minio.Client, repo file.Repository, eventBus *cqrs.EventBus) CommitTempHandler {
+	return commitTempHandler{minioClient, repo, eventBus}
 }
 
 func (m commitTempHandler) Handle(ctx context.Context, cmd CommitTempParams) (CommitTempResult, error) {
@@ -71,7 +69,7 @@ func (m commitTempHandler) Handle(ctx context.Context, cmd CommitTempParams) (Co
 		//Since process is already pretty much done, finalize it anyway
 	}
 
-	err = m.publishCreatedFileEvent(FileCreatedEvent{
+	err = m.publishCreatedFileEvent(ctx, FileCreatedEvent{
 		TempID:  tempFile.Key,
 		PermID:  finalFileHash,
 		Existed: exists,
@@ -141,11 +139,6 @@ type FileCreatedEvent struct {
 	Existed bool   `json:"existed"`
 }
 
-func (m commitTempHandler) publishCreatedFileEvent(event FileCreatedEvent) error {
-	payload, err := json.Marshal(event)
-	if err != nil {
-		return err
-	}
-	msg := message.NewMessage(uuid.New().String(), payload)
-	return m.pub.Publish("file.perm.created", msg)
+func (m commitTempHandler) publishCreatedFileEvent(ctx context.Context, event FileCreatedEvent) error {
+	return m.eventBus.Publish(ctx, &event)
 }
