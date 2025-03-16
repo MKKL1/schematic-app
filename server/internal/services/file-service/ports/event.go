@@ -2,9 +2,9 @@ package ports
 
 import (
 	"context"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/kafka"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/app"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/app/command"
-	"github.com/MKKL1/schematic-app/server/internal/services/file-service/infra/kafka"
 	"github.com/ThreeDotsLabs/watermill/components/cqrs"
 )
 
@@ -19,7 +19,14 @@ type EventHandlers struct {
 func NewEventHandlers(app app.Application, handler kafka.CqrsHandler) *EventHandlers {
 	eh := &EventHandlers{app: app}
 	err := handler.CommandProcessor.AddHandlers(
-		cqrs.NewCommandHandler("CommitFile", eh.commitFileHandler),
+		cqrs.NewCommandHandler("CommitFile", eh.commitFileCmdHandler),
+	)
+	if err != nil {
+		return nil
+	}
+
+	err = handler.EventProcessor.AddHandlers(
+		cqrs.NewEventHandler("CommitFilesFromPost", eh.postCreatedHandler),
 	)
 	if err != nil {
 		return nil
@@ -28,7 +35,12 @@ func NewEventHandlers(app app.Application, handler kafka.CqrsHandler) *EventHand
 	return eh
 }
 
-func (eh *EventHandlers) commitFileHandler(ctx context.Context, cmd *CommitFile) error {
+func (eh *EventHandlers) commitFileCmdHandler(ctx context.Context, cmd *CommitFile) error {
 	_, err := eh.app.Commands.CommitTempFile.Handle(ctx, command.CommitTempParams{Key: cmd.Id})
+	return err
+}
+
+func (eh *EventHandlers) postCreatedHandler(ctx context.Context, event *command.PostCreatedEvent) error {
+	_, err := eh.app.Commands.PostCreatedHandler.Handle(ctx, *event)
 	return err
 }

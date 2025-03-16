@@ -20,7 +20,7 @@ type CqrsHandler struct {
 	CommandBus       *cqrs.CommandBus
 	CommandProcessor *cqrs.CommandProcessor
 	EventBus         *cqrs.EventBus
-	EventProcessor   *cqrs.EventGroupProcessor
+	EventProcessor   *cqrs.EventProcessor
 	router           *message.Router
 }
 
@@ -38,7 +38,6 @@ func NewCqrsHandler(config KafkaConfig) CqrsHandler {
 		},
 	)
 
-	// We are decorating ProtobufMarshaler to add extra metadata to the message.
 	cqrsMarshaler := cqrs.JSONMarshaler{
 		NewUUID:      uuid.New().String,
 		GenerateName: cqrs.StructName,
@@ -48,7 +47,6 @@ func NewCqrsHandler(config KafkaConfig) CqrsHandler {
 		return msg.Metadata.Get("partition_key"), nil
 	})
 
-	// You can use any Pub/Sub implementation from here: https://watermill.io/pubsubs/
 	publisher, err := kafka.NewPublisher(
 		kafka.PublisherConfig{
 			Brokers:   config.Brokers,
@@ -119,17 +117,17 @@ func NewCqrsHandler(config KafkaConfig) CqrsHandler {
 		panic(err)
 	}
 
-	eventProcessor, err := cqrs.NewEventGroupProcessorWithConfig(
+	eventProcessor, err := cqrs.NewEventProcessorWithConfig(
 		router,
-		cqrs.EventGroupProcessorConfig{
-			GenerateSubscribeTopic: func(params cqrs.EventGroupProcessorGenerateSubscribeTopicParams) (string, error) {
-				return "events." + params.EventGroupName, nil
+		cqrs.EventProcessorConfig{
+			GenerateSubscribeTopic: func(params cqrs.EventProcessorGenerateSubscribeTopicParams) (string, error) {
+				return "events." + params.EventName, nil
 			},
-			SubscriberConstructor: func(params cqrs.EventGroupProcessorSubscriberConstructorParams) (message.Subscriber, error) {
+			SubscriberConstructor: func(params cqrs.EventProcessorSubscriberConstructorParams) (message.Subscriber, error) {
 				return kafka.NewSubscriber(
 					kafka.SubscriberConfig{
 						Brokers:       config.Brokers,
-						ConsumerGroup: params.EventGroupName,
+						ConsumerGroup: params.HandlerName,
 						Unmarshaler:   kafkaMarshaler,
 					},
 					watermillLogger,

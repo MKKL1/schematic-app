@@ -8,27 +8,29 @@ import (
 
 //TODO refactor to better fit command pattern
 
-type FileCommitCommandParams struct {
-	Id string
+type CommitFile struct {
+	Id string `json:"id"`
 }
 
-type PostCreatedParams struct {
+type PostCreatedEvent struct {
 	Files []string `json:"files"`
 }
 
-type PostCreatedHandler decorator.CommandHandler[PostCreatedParams, any]
+type PostCreatedHandler decorator.CommandHandler[PostCreatedEvent, any]
 
 type postCreatedHandler struct {
-	eventBus *cqrs.EventBus
+	commandBus *cqrs.CommandBus
 }
 
-func NewPostCreatedHandler(eventBus *cqrs.EventBus) PostCreatedHandler {
-	return postCreatedHandler{eventBus}
+func NewPostCreatedHandler(commandBus *cqrs.CommandBus) PostCreatedHandler {
+	return postCreatedHandler{commandBus}
 }
 
-func (m postCreatedHandler) Handle(ctx context.Context, cmd PostCreatedParams) (any, error) {
+func (m postCreatedHandler) Handle(ctx context.Context, cmd PostCreatedEvent) (any, error) {
 	for _, f := range cmd.Files {
-		err := m.eventBus.Publish(ctx, FileCommitCommandParams{Id: f})
+		err := m.commandBus.Send(ctx, CommitFile{
+			Id: f,
+		})
 		if err != nil {
 			return nil, err
 		}

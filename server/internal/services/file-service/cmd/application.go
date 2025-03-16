@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/kafka"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/app"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/app/command"
-	"github.com/MKKL1/schematic-app/server/internal/services/file-service/infra/kafka"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/infra/postgres"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/infra/postgres/db"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/ports"
@@ -61,12 +61,13 @@ func NewApplication(ctx context.Context) app.Application {
 			UploadTempFile:     command.NewUploadTempFileHandler(minioClient, repo, cqrsHandler.EventBus),
 			DeleteExpiredFiles: command.NewDeleteExpiredFilesHandler(minioClient, repo),
 			CommitTempFile:     command.NewCommitTempHandler(minioClient, repo, cqrsHandler.EventBus),
-			PostCreatedHandler: command.NewPostCreatedHandler(cqrsHandler.EventBus),
+			PostCreatedHandler: command.NewPostCreatedHandler(cqrsHandler.CommandBus),
 		},
 		Queries: app.Queries{},
 	}
 
 	ports.NewEventHandlers(a, cqrsHandler)
+	//Run has to be executed after handlers are registered
 	cqrsHandler.Run(ctx)
 
 	return a

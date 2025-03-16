@@ -2,7 +2,7 @@ package command
 
 import (
 	"context"
-	"crypto/sha256"
+	"crypto/sha1"
 	"encoding/hex"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/domain/file"
@@ -38,7 +38,7 @@ func (m commitTempHandler) Handle(ctx context.Context, cmd CommitTempParams) (Co
 		return CommitTempResult{}, err
 	}
 
-	dstObjName, err := m.computeSHA256(ctx, tempFile.Key)
+	dstObjName, err := m.computeHash(ctx, tempFile.Key)
 	if err != nil {
 		return CommitTempResult{}, err
 	}
@@ -69,7 +69,7 @@ func (m commitTempHandler) Handle(ctx context.Context, cmd CommitTempParams) (Co
 		//Since process is already pretty much done, finalize it anyway
 	}
 
-	err = m.publishCreatedFileEvent(ctx, FileCreatedEvent{
+	err = m.publishCreatedFileEvent(ctx, FileCreated{
 		TempID:  tempFile.Key,
 		PermID:  finalFileHash,
 		Existed: exists,
@@ -119,26 +119,26 @@ func (m commitTempHandler) copyToPermanentStorage(
 	return info.Key, nil
 }
 
-func (m commitTempHandler) computeSHA256(ctx context.Context, object string) (string, error) {
+func (m commitTempHandler) computeHash(ctx context.Context, object string) (string, error) {
 	obj, err := m.minioClient.GetObject(ctx, "temp-bucket", object, minio.GetObjectOptions{})
 	if err != nil {
 		return "", err
 	}
 	defer obj.Close()
 
-	hasher := sha256.New()
+	hasher := sha1.New()
 	if _, err := io.Copy(hasher, obj); err != nil {
 		return "", err
 	}
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
-type FileCreatedEvent struct {
+type FileCreated struct {
 	TempID  string `json:"temp_id"`
 	PermID  string `json:"perm_id"`
 	Existed bool   `json:"existed"`
 }
 
-func (m commitTempHandler) publishCreatedFileEvent(ctx context.Context, event FileCreatedEvent) error {
+func (m commitTempHandler) publishCreatedFileEvent(ctx context.Context, event FileCreated) error {
 	return m.eventBus.Publish(ctx, &event)
 }

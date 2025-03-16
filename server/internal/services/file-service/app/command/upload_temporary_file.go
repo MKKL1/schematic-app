@@ -58,12 +58,12 @@ func (u uploadTempFileHandler) Handle(ctx context.Context, cmd UploadTempFilePar
 	}, nil
 }
 
-type FileUploadedEvent struct {
+type TmpFileUploaded struct {
 	FileID string `json:"file_id"`
 	Path   string `json:"path"`
 }
 
 func (u uploadTempFileHandler) publishFileUploadedEvent(ctx context.Context, fileID string, path string) error {
-	event := FileUploadedEvent{FileID: fileID, Path: path}
+	event := TmpFileUploaded{FileID: fileID, Path: path}
 	return u.eventBus.Publish(ctx, event)
 }
