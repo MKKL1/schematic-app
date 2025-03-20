@@ -6,6 +6,7 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/app"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/app/command"
+	dMinio "github.com/MKKL1/schematic-app/server/internal/services/file-service/infra/minio"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/infra/postgres"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/infra/postgres/db"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/ports"
@@ -48,6 +49,7 @@ func NewApplication(ctx context.Context) app.Application {
 	secretAccessKey := "e1Peh4RLq7E4hgDW3GtV8nl4IaZjGrzDuS0WTPaB"
 
 	minioClient, err := NewMinioClient(endpoint, accessKeyID, secretAccessKey, false)
+	storageClient := dMinio.NewMinioStorageClient(minioClient, "files", "temp-bucket")
 	if err != nil {
 		log.Fatalf("Failed to initialize MinIO client: %v", err)
 	}
@@ -58,9 +60,9 @@ func NewApplication(ctx context.Context) app.Application {
 
 	a := app.Application{
 		Commands: app.Commands{
-			UploadTempFile:     command.NewUploadTempFileHandler(minioClient, repo, cqrsHandler.EventBus),
-			DeleteExpiredFiles: command.NewDeleteExpiredFilesHandler(minioClient, repo),
-			CommitTempFile:     command.NewCommitTempHandler(minioClient, repo, cqrsHandler.EventBus),
+			UploadTempFile:     command.NewUploadTempFileHandler(storageClient, repo, cqrsHandler.EventBus),
+			DeleteExpiredFiles: command.NewDeleteExpiredFilesHandler(storageClient, repo),
+			CommitTempFile:     command.NewCommitTempHandler(storageClient, repo, cqrsHandler.EventBus),
 			PostCreatedHandler: command.NewPostCreatedHandler(cqrsHandler.CommandBus),
 		},
 		Queries: app.Queries{},

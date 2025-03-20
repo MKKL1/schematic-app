@@ -12,6 +12,12 @@ type HttpServer struct {
 	App app.Application
 }
 
+func writeProtobufError(w http.ResponseWriter, err error, code int) {
+	w.Header().Set("Content-Type", "application/x-protobuf")
+	w.WriteHeader(code)
+
+}
+
 func (h HttpServer) UploadMultipartHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST requests allowed", http.StatusMethodNotAllowed)

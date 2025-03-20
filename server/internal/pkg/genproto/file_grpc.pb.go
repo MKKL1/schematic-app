@@ -20,7 +20,6 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	FileService_UploadTempFile_FullMethodName     = "/proto.FileService/UploadTempFile"
 	FileService_DeleteExpiredFiles_FullMethodName = "/proto.FileService/DeleteExpiredFiles"
 )
 
@@ -28,7 +27,6 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type FileServiceClient interface {
-	UploadTempFile(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadTempRequest, UploadTempFileResponse], error)
 	DeleteExpiredFiles(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
@@ -39,19 +37,6 @@ type fileServiceClient struct {
 func NewFileServiceClient(cc grpc.ClientConnInterface) FileServiceClient {
 	return &fileServiceClient{cc}
 }
-
-func (c *fileServiceClient) UploadTempFile(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadTempRequest, UploadTempFileResponse], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &FileService_ServiceDesc.Streams[0], FileService_UploadTempFile_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[UploadTempRequest, UploadTempFileResponse]{ClientStream: stream}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type FileService_UploadTempFileClient = grpc.ClientStreamingClient[UploadTempRequest, UploadTempFileResponse]
 
 func (c *fileServiceClient) DeleteExpiredFiles(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -67,7 +52,6 @@ func (c *fileServiceClient) DeleteExpiredFiles(ctx context.Context, in *emptypb.
 // All implementations must embed UnimplementedFileServiceServer
 // for forward compatibility.
 type FileServiceServer interface {
-	UploadTempFile(grpc.ClientStreamingServer[UploadTempRequest, UploadTempFileResponse]) error
 	DeleteExpiredFiles(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
 	mustEmbedUnimplementedFileServiceServer()
 }
@@ -79,9 +63,6 @@ type FileServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedFileServiceServer struct{}
 
-func (UnimplementedFileServiceServer) UploadTempFile(grpc.ClientStreamingServer[UploadTempRequest, UploadTempFileResponse]) error {
-	return status.Errorf(codes.Unimplemented, "method UploadTempFile not implemented")
-}
 func (UnimplementedFileServiceServer) DeleteExpiredFiles(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteExpiredFiles not implemented")
 }
@@ -105,13 +86,6 @@ func RegisterFileServiceServer(s grpc.ServiceRegistrar, srv FileServiceServer) {
 	}
 	s.RegisterService(&FileService_ServiceDesc, srv)
 }
-
-func _FileService_UploadTempFile_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(FileServiceServer).UploadTempFile(&grpc.GenericServerStream[UploadTempRequest, UploadTempFileResponse]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type FileService_UploadTempFileServer = grpc.ClientStreamingServer[UploadTempRequest, UploadTempFileResponse]
 
 func _FileService_DeleteExpiredFiles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(emptypb.Empty)
@@ -143,12 +117,6 @@ var FileService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _FileService_DeleteExpiredFiles_Handler,
 		},
 	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "UploadTempFile",
-			Handler:       _FileService_UploadTempFile_Handler,
-			ClientStreams: true,
-		},
-	},
+	Streams:  []grpc.StreamDesc{},
 	Metadata: "api/proto/file.proto",
 }

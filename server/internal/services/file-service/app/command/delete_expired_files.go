@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/domain/file"
-	"github.com/minio/minio-go/v7"
 	"github.com/rs/zerolog/log"
 	"strings"
 )
@@ -15,12 +14,12 @@ type DeleteExpiredFilesParams struct {
 type DeleteExpiredFilesHandler decorator.CommandHandler[DeleteExpiredFilesParams, any]
 
 type deleteExpiredFilesHandler struct {
-	minioClient *minio.Client
-	repo        file.Repository
+	storageClient file.StorageClient
+	repo          file.Repository
 }
 
-func NewDeleteExpiredFilesHandler(minioClient *minio.Client, repo file.Repository) DeleteExpiredFilesHandler {
-	return deleteExpiredFilesHandler{minioClient, repo}
+func NewDeleteExpiredFilesHandler(storageClient file.StorageClient, repo file.Repository) DeleteExpiredFilesHandler {
+	return deleteExpiredFilesHandler{storageClient, repo}
 }
 
 func isNotFoundError(err error) bool {
@@ -44,17 +43,19 @@ func (d deleteExpiredFilesHandler) Handle(ctx context.Context, cmd DeleteExpired
 		successfulRemovals[f.Key] = true
 	}
 
-	objectsCh := make(chan minio.ObjectInfo)
+	objectsCh := make(chan string)
 	go func() {
 		defer close(objectsCh)
 		for _, f := range files {
-			objectsCh <- minio.ObjectInfo{Key: f.Key}
+			objectsCh <- f.Key
 		}
 	}()
 
-	errCh := d.minioClient.RemoveObjects(ctx, "temp-bucket", objectsCh, minio.RemoveObjectsOptions{})
+	errCh := d.storageClient.RemoveTempObjects(ctx, objectsCh)
 	for removeErr := range errCh {
 		if removeErr.Err != nil {
+			//TODO abstract
+
 			// Check if the error indicates the object is already removed.
 			if isNotFoundError(removeErr.Err) {
 				log.Printf("Object %s not found, treating as already removed", removeErr.ObjectName)

@@ -6,7 +6,6 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/domain/file"
 	"github.com/ThreeDotsLabs/watermill/components/cqrs"
 	"github.com/google/uuid"
-	"github.com/minio/minio-go/v7"
 	"io"
 	"time"
 )
@@ -20,20 +19,20 @@ type UploadTempFileParams struct {
 type UploadTempFileHandler decorator.CommandHandler[UploadTempFileParams, file.TempFileCreated]
 
 type uploadTempFileHandler struct {
-	minioClient *minio.Client
-	repo        file.Repository
-	eventBus    *cqrs.EventBus
+	storageClient file.StorageClient
+	repo          file.Repository
+	eventBus      *cqrs.EventBus
 }
 
-func NewUploadTempFileHandler(minioClient *minio.Client, repo file.Repository, eventBus *cqrs.EventBus) UploadTempFileHandler {
-	return uploadTempFileHandler{minioClient, repo, eventBus}
+func NewUploadTempFileHandler(storageClient file.StorageClient, repo file.Repository, eventBus *cqrs.EventBus) UploadTempFileHandler {
+	return uploadTempFileHandler{storageClient, repo, eventBus}
 }
 
 func (u uploadTempFileHandler) Handle(ctx context.Context, cmd UploadTempFileParams) (file.TempFileCreated, error) {
 	objectKey := uuid.New().String()
 	expiresAt := time.Now().Add(time.Hour)
 
-	info, err := u.minioClient.PutObject(ctx, "temp-bucket", objectKey, cmd.Reader, -1, minio.PutObjectOptions{ContentType: cmd.ContentType})
+	info, err := u.storageClient.PutTempObject(ctx, objectKey, cmd.Reader, cmd.ContentType)
 	if err != nil {
 		return file.TempFileCreated{}, err
 	}
@@ -58,12 +57,7 @@ func (u uploadTempFileHandler) Handle(ctx context.Context, cmd UploadTempFilePar
 	}, nil
 }
 
-type TmpFileUploaded struct {
-	FileID string `json:"file_id"`
-	Path   string `json:"path"`
-}
-
 func (u uploadTempFileHandler) publishFileUploadedEvent(ctx context.Context, fileID string, path string) error {
-	event := TmpFileUploaded{FileID: fileID, Path: path}
+	event := file.TmpFileUploaded{FileID: fileID, Path: path}
 	return u.eventBus.Publish(ctx, event)
 }

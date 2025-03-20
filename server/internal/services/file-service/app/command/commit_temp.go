@@ -7,7 +7,6 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/domain/file"
 	"github.com/ThreeDotsLabs/watermill/components/cqrs"
-	"github.com/minio/minio-go/v7"
 	"github.com/rs/zerolog/log"
 	"io"
 )
@@ -23,13 +22,13 @@ type CommitTempResult struct {
 type CommitTempHandler decorator.CommandHandler[CommitTempParams, CommitTempResult]
 
 type commitTempHandler struct {
-	minioClient *minio.Client
-	repo        file.Repository
-	eventBus    *cqrs.EventBus
+	storageClient file.StorageClient
+	repo          file.Repository
+	eventBus      *cqrs.EventBus
 }
 
-func NewCommitTempHandler(minioClient *minio.Client, repo file.Repository, eventBus *cqrs.EventBus) CommitTempHandler {
-	return commitTempHandler{minioClient, repo, eventBus}
+func NewCommitTempHandler(storageClient file.StorageClient, repo file.Repository, eventBus *cqrs.EventBus) CommitTempHandler {
+	return commitTempHandler{storageClient, repo, eventBus}
 }
 
 func (m commitTempHandler) Handle(ctx context.Context, cmd CommitTempParams) (CommitTempResult, error) {
@@ -69,7 +68,7 @@ func (m commitTempHandler) Handle(ctx context.Context, cmd CommitTempParams) (Co
 		//Since process is already pretty much done, finalize it anyway
 	}
 
-	err = m.publishCreatedFileEvent(ctx, FileCreated{
+	err = m.publishCreatedFileEvent(ctx, file.FileCreated{
 		TempID:  tempFile.Key,
 		PermID:  finalFileHash,
 		Existed: exists,
@@ -87,16 +86,8 @@ func (m commitTempHandler) copyToPermanentStorage(
 	tempFile file.TempFile,
 	dstObjName string,
 ) (string, error) {
-	dst := minio.CopyDestOptions{
-		Bucket: "files",
-		Object: dstObjName,
-	}
-	src := minio.CopySrcOptions{
-		Bucket: "temp-bucket",
-		Object: tempFile.Key,
-	}
+	info, err := m.storageClient.CopyTempToPermanent(ctx, tempFile.Key, dstObjName)
 
-	info, err := m.minioClient.CopyObject(ctx, dst, src)
 	if err != nil {
 		return "", err
 	}
@@ -109,7 +100,7 @@ func (m commitTempHandler) copyToPermanentStorage(
 	if err != nil {
 		// If we fail here, the file is copied but not recorded in the database
 		// We should try to remove it from the permanent storage
-		cleanupErr := m.minioClient.RemoveObject(ctx, "files", dstObjName, minio.RemoveObjectOptions{})
+		cleanupErr := m.storageClient.RemovePermObject(ctx, dstObjName)
 		if cleanupErr != nil {
 			log.Printf("Failed to clean up orphaned file %s: %v", dstObjName, cleanupErr)
 		}
@@ -120,7 +111,7 @@ func (m commitTempHandler) copyToPermanentStorage(
 }
 
 func (m commitTempHandler) computeHash(ctx context.Context, object string) (string, error) {
-	obj, err := m.minioClient.GetObject(ctx, "temp-bucket", object, minio.GetObjectOptions{})
+	obj, err := m.storageClient.GetTempObject(ctx, object)
 	if err != nil {
 		return "", err
 	}
@@ -133,12 +124,6 @@ func (m commitTempHandler) computeHash(ctx context.Context, object string) (stri
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
-type FileCreated struct {
-	TempID  string `json:"temp_id"`
-	PermID  string `json:"perm_id"`
-	Existed bool   `json:"existed"`
-}
-
-func (m commitTempHandler) publishCreatedFileEvent(ctx context.Context, event FileCreated) error {
+func (m commitTempHandler) publishCreatedFileEvent(ctx context.Context, event file.FileCreated) error {
 	return m.eventBus.Publish(ctx, &event)
 }
