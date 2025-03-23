@@ -3,6 +3,7 @@ package post
 import (
 	"github.com/MKKL1/schematic-app/server/internal/pkg/client"
 	"strconv"
+	"time"
 )
 
 type PostResponse struct {
@@ -13,11 +14,21 @@ type PostResponse struct {
 	AuthorID    *string                  `json:"author_id"`
 	Categories  []PostCategoriesResponse `json:"categories"`
 	Tags        []string                 `json:"tags"`
+	Files       []PostFilesResponse      `json:"files"`
 }
 
 type PostCategoriesResponse struct {
 	Name     string                 `json:"name"`
 	Metadata map[string]interface{} `json:"metadata"`
+}
+
+type PostFilesResponse struct {
+	Hash      *string
+	Name      string
+	Downloads *int32
+	FileSize  *int32
+	UpdatedAt *time.Time
+	State     string
 }
 
 func PostToResponse(post client.Post) PostResponse {
@@ -39,6 +50,8 @@ func PostToResponse(post client.Post) PostResponse {
 			Metadata: v.Metadata,
 		}
 	}
+
+	files := []PostFilesResponse{}
 
 	return PostResponse{
 		ID:          strconv.FormatInt(post.ID, 10),

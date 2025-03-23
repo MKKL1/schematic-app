@@ -8,9 +8,19 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/infra/postgres/db"
 	"github.com/bytedance/sonic"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"time"
 )
+
+type attachedFileModel struct {
+	Hash      *string   `json:"hash"`
+	TempID    *string   `json:"temp_id"`
+	Name      string    `json:"name"`
+	FileSize  int32     `json:"file_size"`
+	Downloads int32     `json:"downloads"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
 
 type PostPostgresRepository struct {
 	queries *db.Queries
@@ -53,6 +63,36 @@ func (p PostPostgresRepository) FindById(ctx context.Context, id int64) (post.Po
 		}
 	}
 
+	var fileModel []attachedFileModel
+	if row.Files != nil {
+		s, ok := row.Files.(string)
+		if !ok {
+			return post.Post{}, errors.New("invalid type for Files")
+		}
+		err := sonic.UnmarshalString(s, fileModel)
+		if err != nil {
+			return post.Post{}, err
+		}
+	}
+
+	files := make([]post.PostFile, len(fileModel))
+	for i, file := range fileModel {
+		if file.Hash == nil {
+			files[i] = post.PostFile{
+				Name:  file.Name,
+				State: post.FilePending,
+			}
+		}
+		files[i] = post.PostFile{
+			Hash:      file.Hash,
+			Name:      file.Name,
+			Downloads: &file.Downloads,
+			FileSize:  &file.FileSize,
+			UpdatedAt: &file.UpdatedAt,
+			State:     post.FileAvailable,
+		}
+	}
+
 	postEntity := post.Post{
 		ID:          row.ID,
 		Name:        row.Name,
@@ -61,6 +101,7 @@ func (p PostPostgresRepository) FindById(ctx context.Context, id int64) (post.Po
 		AuthorID:    row.AuthorID,
 		Categories:  categoryVars,
 		Tags:        tags,
+		Files:       files,
 	}
 
 	return postEntity, nil
@@ -72,9 +113,9 @@ func (p PostPostgresRepository) Create(ctx context.Context, params post.CreatePo
 		return err
 	}
 
-	files := make([]uuid.UUID, len(params.Files))
-	for i, f := range params.Files {
-		files[i] = f.TempId
+	filesJSON, err := sonic.Marshal(params.Files)
+	if err != nil {
+		return err
 	}
 
 	err = p.queries.CreatePost(ctx, db.CreatePostParams{
@@ -85,7 +126,7 @@ func (p PostPostgresRepository) Create(ctx context.Context, params post.CreatePo
 		AuthorID: params.AuthorID,
 		Column6:  params.Tags,
 		Column7:  categoriesJSON,
-		Column8:  files,
+		Column8:  filesJSON,
 	})
 	if err != nil {
 		return err

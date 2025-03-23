@@ -7,8 +7,6 @@ package db
 
 import (
 	"context"
-
-	"github.com/google/uuid"
 )
 
 const createPost = `-- name: CreatePost :exec
@@ -29,9 +27,10 @@ WITH ins_post AS (
                   jsonb_to_recordset($7::jsonb) AS r("Name" text, "Metadata" jsonb)
      ),
      ins_file AS (
-         INSERT INTO attached_files (temp_id, post_id)
-             SELECT t, ins_post.id
-             FROM ins_post, unnest($8::uuid[]) AS t
+         INSERT INTO attached_files (temp_id, post_id, name)
+             SELECT f.temp_id, ins_post.id, f.name
+             FROM ins_post,
+                  jsonb_to_recordset($8::jsonb) AS f(temp_id uuid, name text)
      )
 SELECT id FROM ins_post
 `
@@ -44,7 +43,7 @@ type CreatePostParams struct {
 	AuthorID *int64
 	Column6  []string
 	Column7  []byte
-	Column8  []uuid.UUID
+	Column8  []byte
 }
 
 func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) error {
@@ -100,7 +99,25 @@ SELECT
                 WHERE pt.post_id = p.id
             ),
             '{}'::text[]
-    ) AS tags
+    ) AS tags,
+    COALESCE(
+            (
+                SELECT json_agg(
+                               json_build_object(
+                                       'hash', af.hash,
+                                       'temp_id', af.temp_id,
+                                       'name', af.name,
+                                       'file_size', af.file_size,
+                                       'downloads', af.downloads,
+                                       'created_at', af.created_at,
+                                       'updated_at', af.updated_at
+                               )
+                       )::text
+                FROM attached_files af
+                WHERE af.post_id = p.id
+            ),
+            '[]'
+    ) AS files
 FROM post p
 WHERE p.id = $1
 `
@@ -113,6 +130,7 @@ type GetPostRow struct {
 	AuthorID     *int64
 	CategoryVars interface{}
 	Tags         interface{}
+	Files        interface{}
 }
 
 func (q *Queries) GetPost(ctx context.Context, id int64) (GetPostRow, error) {
@@ -126,6 +144,7 @@ func (q *Queries) GetPost(ctx context.Context, id int64) (GetPostRow, error) {
 		&i.AuthorID,
 		&i.CategoryVars,
 		&i.Tags,
+		&i.Files,
 	)
 	return i, err
 }

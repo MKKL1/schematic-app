@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/timestamp.proto";
+
 package proto;
 
 option go_package = "./internal/pkg/genproto";
@@ -31,7 +33,7 @@ message Tag {
   string tag = 1;
 }
 
-message File {
+message File { //Rename to CreateFile or something like that
   string tempId = 1;
 }
 
@@ -43,4 +45,24 @@ message Post {
   optional int64 author = 5;
   bytes categories = 6;
   repeated Tag tags = 7;
+  repeated PostFile files = 8;
+}
+
+message PostFile {
+  oneof state {
+    PendingPostFile pending = 1;
+    ProcessedPostFile processed = 2;
+  }
+}
+
+message ProcessedPostFile {
+  string hash = 1;
+  string name = 2;
+  int32 downloads = 3;
+  int32 fileSize = 4;
+  google.protobuf.Timestamp updatedAt = 5;
+}
+
+message PendingPostFile {//Transient state
+  string name = 1;
 }

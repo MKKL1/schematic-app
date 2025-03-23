@@ -5,6 +5,7 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/pkg/genproto"
 	"github.com/bytedance/sonic"
 	"github.com/google/uuid"
+	"time"
 )
 
 type Post struct {
@@ -15,6 +16,16 @@ type Post struct {
 	AuthorID    *int64
 	Categories  []PostCategories
 	Tags        []string
+	File        []PostFile
+}
+
+type PostFile struct {
+	Hash      *string
+	Name      string
+	Downloads *int32
+	FileSize  *int32
+	UpdatedAt *time.Time
+	State     string
 }
 
 type PostCategories struct {
@@ -132,6 +143,18 @@ func postProtoToDto(post *genproto.Post) (Post, error) {
 		return Post{}, err
 	}
 
+	files := make([]PostFile, len(post.Files))
+	for i, f := range post.Files {
+		//TODO implement
+		files[i] = PostFile{
+			Hash:      ,
+			Name:      "",
+			Downloads: nil,
+			FileSize:  nil,
+			UpdatedAt: nil,
+			State:     "",
+		}
+	}
 	return Post{
 		ID:          post.Id,
 		Name:        post.Name,
@@ -140,6 +163,7 @@ func postProtoToDto(post *genproto.Post) (Post, error) {
 		AuthorID:    post.Author,
 		Categories:  categories,
 		Tags:        tags,
+		File:
 	}, nil
 }
 

@@ -24,9 +24,9 @@ create table gallery_image
 create table attached_files
 (
     hash text,
-    temp_id uuid,
-    post_id bigint not null references post,
-    name text not null default '',
+    temp_id uuid, 
+    post_id bigint not null references post, --TODO add index
+    name text not null,
     file_size int not null default 0,
     downloads int not null default 0,
     created_at timestamptz not null default NOW(),

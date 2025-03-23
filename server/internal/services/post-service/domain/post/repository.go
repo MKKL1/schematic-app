@@ -2,7 +2,6 @@ package post
 
 import (
 	"context"
-	"github.com/google/uuid"
 )
 
 type CreatePostParams struct {
@@ -22,7 +21,8 @@ type CreatePostCategoryParams struct {
 }
 
 type CreatePostFileParams struct {
-	TempId uuid.UUID
+	Name   string `json:"name"` //json for database query, may need to move it to infra
+	TempId string `json:"temp_id"`
 }
 
 type Repository interface {

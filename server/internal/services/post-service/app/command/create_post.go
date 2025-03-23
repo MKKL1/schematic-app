@@ -70,7 +70,8 @@ func (h createPostHandler) Handle(ctx context.Context, params CreatePostParams) 
 	files := make([]post.CreatePostFileParams, len(params.Files))
 	for i, f := range params.Files {
 		files[i] = post.CreatePostFileParams{
-			TempId: f.TempId,
+			Name:   "TODO", //TODO get name from file service, this should be done when checking if file exists
+			TempId: f.TempId.String(),
 		}
 	}
 
