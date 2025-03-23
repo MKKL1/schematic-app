@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const createPost = `-- name: CreatePost :exec
@@ -25,6 +27,11 @@ WITH ins_post AS (
              SELECT ins_post.id, r."Name", r."Metadata"
              FROM ins_post,
                   jsonb_to_recordset($7::jsonb) AS r("Name" text, "Metadata" jsonb)
+     ),
+     ins_file AS (
+         INSERT INTO attached_files (temp_id, post_id)
+             SELECT t, ins_post.id
+             FROM ins_post, unnest($8::uuid[]) AS t
      )
 SELECT id FROM ins_post
 `
@@ -37,6 +44,7 @@ type CreatePostParams struct {
 	AuthorID *int64
 	Column6  []string
 	Column7  []byte
+	Column8  []uuid.UUID
 }
 
 func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) error {
@@ -48,6 +56,7 @@ func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) error {
 		arg.AuthorID,
 		arg.Column6,
 		arg.Column7,
+		arg.Column8,
 	)
 	return err
 }

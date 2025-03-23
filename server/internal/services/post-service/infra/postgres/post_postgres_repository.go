@@ -8,6 +8,7 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/infra/postgres/db"
 	"github.com/bytedance/sonic"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -71,6 +72,11 @@ func (p PostPostgresRepository) Create(ctx context.Context, params post.CreatePo
 		return err
 	}
 
+	files := make([]uuid.UUID, len(params.Files))
+	for i, f := range params.Files {
+		files[i] = f.TempId
+	}
+
 	err = p.queries.CreatePost(ctx, db.CreatePostParams{
 		ID:       params.ID,
 		Name:     params.Name,
@@ -79,6 +85,7 @@ func (p PostPostgresRepository) Create(ctx context.Context, params post.CreatePo
 		AuthorID: params.AuthorID,
 		Column6:  params.Tags,
 		Column7:  categoriesJSON,
+		Column8:  files,
 	})
 	if err != nil {
 		return err

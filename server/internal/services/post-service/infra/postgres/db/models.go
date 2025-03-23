@@ -4,23 +4,41 @@
 
 package db
 
+import (
+	"github.com/jackc/pgx/v5/pgtype"
+)
+
+type AttachedFile struct {
+	Hash      *string
+	TempID    pgtype.UUID
+	PostID    int64
+	Name      string
+	FileSize  int32
+	Downloads int32
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
+}
+
 type Category struct {
 	Name           string
 	MetadataSchema []byte
 }
 
 type GalleryImage struct {
-	ImageID int64
-	PostID  *int64
-	Desc    *string
+	PostID *int64
+	FileID string
+	Order  int16
+	Desc   *string
 }
 
 type Post struct {
-	ID       int64
-	Name     string
-	Desc     *string
-	Owner    int64
-	AuthorID *int64
+	ID        int64
+	Name      string
+	Desc      *string
+	Owner     int64
+	AuthorID  *int64
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
 }
 
 type PostCategoryMetadatum struct {

@@ -9,11 +9,11 @@ import (
 
 //TODO refactor to better fit command pattern
 
-type PostCreatedEvent struct {
+type PostCreated struct {
 	Files []string `json:"files"`
 }
 
-type PostCreatedHandler decorator.CommandHandler[PostCreatedEvent, any]
+type PostCreatedHandler decorator.CommandHandler[PostCreated, any]
 
 type postCreatedHandler struct {
 	commandBus *cqrs.CommandBus
@@ -23,7 +23,7 @@ func NewPostCreatedHandler(commandBus *cqrs.CommandBus) PostCreatedHandler {
 	return postCreatedHandler{commandBus}
 }
 
-func (m postCreatedHandler) Handle(ctx context.Context, cmd PostCreatedEvent) (any, error) {
+func (m postCreatedHandler) Handle(ctx context.Context, cmd PostCreated) (any, error) {
 	for _, f := range cmd.Files {
 		err := m.commandBus.Send(ctx, file.CommitFile{
 			Id: f,

@@ -6,7 +6,9 @@ create table post
     name           text not null,
     "desc"         text,
     owner          bigint not null,
-    author_id   BIGINT
+    author_id   bigint,
+    created_at timestamptz not null default NOW(),
+    updated_at timestamptz not null default NOW()
 );
 
 create table gallery_image
@@ -21,7 +23,14 @@ create table gallery_image
 
 create table attached_files
 (
-
+    hash text,
+    temp_id uuid,
+    post_id bigint not null references post,
+    name text not null default '',
+    file_size int not null default 0,
+    downloads int not null default 0,
+    created_at timestamptz not null default NOW(),
+    updated_at timestamptz not null default NOW()
 );
 
 create table categories (
@@ -29,7 +38,7 @@ create table categories (
     metadata_schema jsonb not null
 );
 
-CREATE TABLE post_category_metadata (
+create table post_category_metadata (
     post_id bigint not null references post(id) on delete cascade,
     category text not null references categories(name) on delete cascade,
     metadata jsonb not null,

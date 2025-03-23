@@ -9,8 +9,9 @@ import (
 type Code string
 
 const (
-	ErrorCodeUnknown  Code = "UNKNOWN"
-	ErrorCodeConflict Code = "CONFLICT"
+	ErrorCodeUnknown    Code = "UNKNOWN"
+	ErrorCodeConflict   Code = "CONFLICT"
+	ErrorCodeBadRequest Code = "BAD_REQUEST"
 )
 
 // AppError is a custom error that wraps a domain error.

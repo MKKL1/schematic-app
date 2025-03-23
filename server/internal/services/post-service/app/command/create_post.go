@@ -10,6 +10,7 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/category"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/category/validator"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
+	"github.com/ThreeDotsLabs/watermill/components/cqrs"
 	"github.com/bwmarrin/snowflake"
 	"github.com/google/uuid"
 )
@@ -21,11 +22,16 @@ type CreatePostParams struct {
 	Sub         uuid.UUID
 	Categories  []CategoryMetadataParams
 	Tags        []string
+	Files       []CreatePostFileParams
 }
 
 type CategoryMetadataParams struct {
 	Name     string
 	Metadata map[string]interface{}
+}
+
+type CreatePostFileParams struct {
+	TempId uuid.UUID
 }
 
 type CreatePostHandler decorator.CommandHandler[CreatePostParams, int64]
@@ -35,10 +41,11 @@ type createPostHandler struct {
 	categoryRepo category.Repository
 	idNode       *snowflake.Node
 	userService  client.UserApplication
+	eventBus     *cqrs.EventBus
 }
 
-func NewCreatePostHandler(repo post.Repository, categoryRepo category.Repository, idNode *snowflake.Node, userService client.UserApplication) CreatePostHandler {
-	return createPostHandler{repo, categoryRepo, idNode, userService}
+func NewCreatePostHandler(repo post.Repository, categoryRepo category.Repository, idNode *snowflake.Node, userService client.UserApplication, eventBus *cqrs.EventBus) CreatePostHandler {
+	return createPostHandler{repo, categoryRepo, idNode, userService, eventBus}
 }
 
 func (h createPostHandler) Handle(ctx context.Context, params CreatePostParams) (int64, error) {
@@ -60,14 +67,22 @@ func (h createPostHandler) Handle(ctx context.Context, params CreatePostParams) 
 		}
 	}
 
+	files := make([]post.CreatePostFileParams, len(params.Files))
+	for i, f := range params.Files {
+		files[i] = post.CreatePostFileParams{
+			TempId: f.TempId,
+		}
+	}
+
 	newPost := post.CreatePostParams{
 		ID:          h.idNode.Generate().Int64(),
 		Name:        params.Name,
 		Description: params.Description,
-		Owner:       user.ID,
 		AuthorID:    params.AuthorID,
+		Owner:       user.ID,
 		Categories:  categs,
 		Tags:        params.Tags,
+		Files:       files,
 	}
 
 	err = h.repo.Create(ctx, newPost)
@@ -75,7 +90,46 @@ func (h createPostHandler) Handle(ctx context.Context, params CreatePostParams) 
 		return 0, apperr.WrapErrorf(err, apperr.ErrorCodeUnknown, "CreatePostHandler: Handle: repo.Create")
 	}
 
+	go func() {
+		err = h.publishCreatePostEvent(ctx, newPost, params.Files)
+		if err != nil {
+			//TODO handle
+			//log or delete created post from database
+		}
+	}()
+
 	return newPost.ID, nil
+}
+
+func (h createPostHandler) publishCreatePostEvent(ctx context.Context, newPost post.CreatePostParams, files []CreatePostFileParams) error {
+	categs := make(post.PostCategoriesStructured, len(newPost.Categories))
+	for _, c := range newPost.Categories {
+		categs[c.Name] = c.Metadata
+	}
+
+	eventFiles := make([]post.PostCreatedFileData, len(files))
+	for i, f := range files {
+		eventFiles[i] = post.PostCreatedFileData{
+			TempId: f.TempId.String(),
+		}
+	}
+
+	event := post.PostCreated{
+		Id:          newPost.ID,
+		Name:        newPost.Name,
+		Description: newPost.Description,
+		Owner:       newPost.Owner,
+		AuthorId:    newPost.AuthorID,
+		Categories:  categs,
+		Tags:        newPost.Tags,
+		Files:       eventFiles,
+	}
+
+	err := h.eventBus.Publish(ctx, event)
+	if err != nil {
+		return apperr.WrapErrorf(err, apperr.ErrorCodeUnknown, "CreatePostHandler: Publish")
+	}
+	return nil
 }
 
 func (h createPostHandler) validateCategories(ctx context.Context, categories []CategoryMetadataParams) error {

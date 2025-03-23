@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package proto;
 
-option go_package = "github.com/MKKL1/schematic-app/server/internal/pkg/genproto";
+option go_package = "./internal/pkg/genproto";
 
 service PostService {
   rpc GetPostById(PostByIdRequest) returns (Post) {}
@@ -20,6 +20,7 @@ message CreatePostRequest {
   bytes authSub = 4;
   bytes categories = 5;
   repeated Tag tags = 6;
+  repeated File files = 7;
 }
 
 message CreatePostResponse {
@@ -28,6 +29,10 @@ message CreatePostResponse {
 
 message Tag {
   string tag = 1;
+}
+
+message File {
+  string tempId = 1;
 }
 
 message Post {

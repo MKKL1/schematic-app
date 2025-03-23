@@ -47,6 +47,18 @@ func (g GrpcServer) CreatePost(ctx context.Context, request *genproto.CreatePost
 		tags[i] = tag.Tag
 	}
 
+	files := make([]command.CreatePostFileParams, len(request.Files))
+	for i, f := range request.Files {
+		tId, err := uuid.Parse(f.TempId)
+		if err != nil {
+			//TODO return invalid argument
+			return nil, err
+		}
+		files[i] = command.CreatePostFileParams{
+			TempId: tId,
+		}
+	}
+
 	createdId, err := g.app.Commands.CreatePost.Handle(ctx, command.CreatePostParams{
 		Name:        request.Name,
 		Description: request.Description,
@@ -54,6 +66,7 @@ func (g GrpcServer) CreatePost(ctx context.Context, request *genproto.CreatePost
 		Sub:         sub,
 		Categories:  categMetadataList,
 		Tags:        tags,
+		Files:       files,
 	})
 	if err != nil {
 		return nil, err

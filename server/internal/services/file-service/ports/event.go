@@ -40,7 +40,7 @@ func (eh *EventHandlers) commitFileCmdHandler(ctx context.Context, cmd *CommitFi
 	return err
 }
 
-func (eh *EventHandlers) postCreatedHandler(ctx context.Context, event *command.PostCreatedEvent) error {
+func (eh *EventHandlers) postCreatedHandler(ctx context.Context, event *command.PostCreated) error {
 	_, err := eh.app.Commands.PostCreatedHandler.Handle(ctx, *event)
 	return err
 }

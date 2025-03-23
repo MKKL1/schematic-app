@@ -15,3 +15,5 @@ type Post struct {
 type CategoryMetadata map[string]interface{}
 
 type PostCategories json.RawMessage
+
+type PostCategoriesStructured map[string]CategoryMetadata

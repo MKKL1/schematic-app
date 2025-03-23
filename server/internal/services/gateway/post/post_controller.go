@@ -9,6 +9,7 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/services/gateway/grpc"
 	gtHttp "github.com/MKKL1/schematic-app/server/internal/services/gateway/http"
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/status"
@@ -69,10 +70,21 @@ func (pc *Controller) CreatePost(c echo.Context) error {
 	}
 
 	categParams := make([]client.CreateCategoryMetadataParams, len(requestData.Categories))
-	for i, c := range requestData.Categories {
+	for i, cat := range requestData.Categories {
 		categParams[i] = client.CreateCategoryMetadataParams{
-			Name:     c.Name,
-			Metadata: c.Metadata,
+			Name:     cat.Name,
+			Metadata: cat.Metadata,
+		}
+	}
+
+	filesParams := make([]client.CreatePostFileParams, len(requestData.Files))
+	for i, f := range requestData.Files {
+		fId, err := uuid.Parse(f)
+		if err != nil {
+			return err
+		}
+		filesParams[i] = client.CreatePostFileParams{
+			TempId: fId,
 		}
 	}
 
@@ -92,6 +104,7 @@ func (pc *Controller) CreatePost(c echo.Context) error {
 		Sub:         subjectUUID,
 		Categories:  categParams,
 		Tags:        requestData.Tags,
+		Files:       filesParams,
 	}
 
 	id, err := pc.postApp.Command.CreatePost(ctx, params)

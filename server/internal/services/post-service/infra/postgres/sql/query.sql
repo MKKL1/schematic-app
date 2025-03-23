@@ -46,6 +46,11 @@ WITH ins_post AS (
              SELECT ins_post.id, r."Name", r."Metadata"
              FROM ins_post,
                   jsonb_to_recordset($7::jsonb) AS r("Name" text, "Metadata" jsonb)
+     ),
+     ins_file AS (
+         INSERT INTO attached_files (temp_id, post_id)
+             SELECT t, ins_post.id
+             FROM ins_post, unnest($8::uuid[]) AS t
      )
 SELECT id FROM ins_post;
 

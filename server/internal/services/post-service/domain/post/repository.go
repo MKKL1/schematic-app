@@ -2,6 +2,7 @@ package post
 
 import (
 	"context"
+	"github.com/google/uuid"
 )
 
 type CreatePostParams struct {
@@ -12,11 +13,16 @@ type CreatePostParams struct {
 	Owner       int64
 	Categories  []CreatePostCategoryParams
 	Tags        []string
+	Files       []CreatePostFileParams
 }
 
 type CreatePostCategoryParams struct {
 	Name     string
 	Metadata map[string]interface{}
+}
+
+type CreatePostFileParams struct {
+	TempId uuid.UUID
 }
 
 type Repository interface {

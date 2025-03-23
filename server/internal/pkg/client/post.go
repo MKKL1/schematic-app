@@ -29,6 +29,11 @@ type CreatePostParams struct {
 	Sub         uuid.UUID
 	Categories  []CreateCategoryMetadataParams
 	Tags        []string
+	Files       []CreatePostFileParams
+}
+
+type CreatePostFileParams struct {
+	TempId uuid.UUID
 }
 
 type CreateCategoryMetadataParams struct {
@@ -75,6 +80,13 @@ func (p PostCommandGrpcService) CreatePost(ctx context.Context, params CreatePos
 		}
 	}
 
+	files := make([]*genproto.File, len(params.Files))
+	for i, f := range params.Files {
+		files[i] = &genproto.File{
+			TempId: f.TempId.String(),
+		}
+	}
+
 	createdId, err := p.grpcClient.CreatePost(ctx, &genproto.CreatePostRequest{
 		Name:        params.Name,
 		Description: params.Description,
@@ -82,6 +94,7 @@ func (p PostCommandGrpcService) CreatePost(ctx context.Context, params CreatePos
 		AuthSub:     subBytes,
 		Categories:  categBytes,
 		Tags:        tags,
+		Files:       files,
 	})
 	if err != nil {
 		return 0, err

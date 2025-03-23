@@ -3,6 +3,7 @@ package ports
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/apperr"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/app"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/app/command"
 	"net/http"
@@ -12,10 +13,9 @@ type HttpServer struct {
 	App app.Application
 }
 
-func writeProtobufError(w http.ResponseWriter, err error, code int) {
+func writeProtobufError(w http.ResponseWriter, err apperr.AppError, code int) {
 	w.Header().Set("Content-Type", "application/x-protobuf")
 	w.WriteHeader(code)
-
 }
 
 func (h HttpServer) UploadMultipartHandler(w http.ResponseWriter, r *http.Request) {
