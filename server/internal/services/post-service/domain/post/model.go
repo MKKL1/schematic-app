@@ -11,7 +11,7 @@ type Post struct {
 	Description *string
 	Owner       int64
 	AuthorID    *int64
-	Categories  PostCategories
+	Categories  PostCategoriesRaw
 	Tags        []string
 	Files       []PostFile
 }
@@ -21,7 +21,6 @@ type FileProcessingState string
 const (
 	FilePending   FileProcessingState = "Pending"
 	FileAvailable FileProcessingState = "Available"
-	FileFailed    FileProcessingState = "Failed"
 )
 
 type PostFile struct {
@@ -35,6 +34,8 @@ type PostFile struct {
 
 type CategoryMetadata map[string]interface{}
 
-type PostCategories json.RawMessage
+// PostCategoriesRaw is used when category data is passed without any modification to it
+type PostCategoriesRaw json.RawMessage
 
-type PostCategoriesStructured map[string]CategoryMetadata
+// PostCategories contrary to PostCategoriesRaw it is used when category data needs to be structured
+type PostCategories map[string]CategoryMetadata

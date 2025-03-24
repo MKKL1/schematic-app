@@ -1,18 +1,16 @@
-package postgres
+package mappers
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	errorDB "github.com/MKKL1/schematic-app/server/internal/pkg/db"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
-	"github.com/MKKL1/schematic-app/server/internal/services/post-service/infra/postgres/db"
+	"github.com/MKKL1/schematic-app/server/internal/services/post-service/postgres/db"
 	"github.com/bytedance/sonic"
-	"github.com/jackc/pgx/v5"
 	"time"
 )
 
-type attachedFileModel struct {
+// PostFileModel used to deserialize postgres query
+type PostFileModel struct {
 	Hash      *string   `json:"hash"`
 	TempID    *string   `json:"temp_id"`
 	Name      string    `json:"name"`
@@ -22,24 +20,8 @@ type attachedFileModel struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-type PostPostgresRepository struct {
-	queries *db.Queries
-}
-
-func NewPostPostgresRepository(queries *db.Queries) *PostPostgresRepository {
-	return &PostPostgresRepository{queries}
-}
-
-func (p PostPostgresRepository) FindById(ctx context.Context, id int64) (post.Post, error) {
-	row, err := p.queries.GetPost(ctx, id)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return post.Post{}, errorDB.ErrNoRows
-		}
-		return post.Post{}, err
-	}
-
-	var categoryVars post.PostCategories
+func GetPostRowToApp(row db.GetPostRow) (post.Post, error) {
+	var categoryVars post.PostCategoriesRaw
 	if row.CategoryVars != nil {
 		s, ok := row.CategoryVars.(string)
 		if !ok {
@@ -63,13 +45,13 @@ func (p PostPostgresRepository) FindById(ctx context.Context, id int64) (post.Po
 		}
 	}
 
-	var fileModel []attachedFileModel
+	var fileModel []PostFileModel
 	if row.Files != nil {
 		s, ok := row.Files.(string)
 		if !ok {
 			return post.Post{}, errors.New("invalid type for Files")
 		}
-		err := sonic.UnmarshalString(s, fileModel)
+		err := sonic.UnmarshalString(s, &fileModel)
 		if err != nil {
 			return post.Post{}, err
 		}
@@ -82,18 +64,20 @@ func (p PostPostgresRepository) FindById(ctx context.Context, id int64) (post.Po
 				Name:  file.Name,
 				State: post.FilePending,
 			}
+		} else {
+			files[i] = post.PostFile{
+				Hash:      file.Hash,
+				Name:      file.Name,
+				Downloads: &file.Downloads,
+				FileSize:  &file.FileSize,
+				UpdatedAt: &file.UpdatedAt,
+				State:     post.FileAvailable,
+			}
 		}
-		files[i] = post.PostFile{
-			Hash:      file.Hash,
-			Name:      file.Name,
-			Downloads: &file.Downloads,
-			FileSize:  &file.FileSize,
-			UpdatedAt: &file.UpdatedAt,
-			State:     post.FileAvailable,
-		}
+
 	}
 
-	postEntity := post.Post{
+	return post.Post{
 		ID:          row.ID,
 		Name:        row.Name,
 		Description: row.Description,
@@ -102,23 +86,21 @@ func (p PostPostgresRepository) FindById(ctx context.Context, id int64) (post.Po
 		Categories:  categoryVars,
 		Tags:        tags,
 		Files:       files,
-	}
-
-	return postEntity, nil
+	}, nil
 }
 
-func (p PostPostgresRepository) Create(ctx context.Context, params post.CreatePostParams) error {
+func CreatePostParamsToQuery(params post.CreatePostParams) (db.CreatePostParams, error) {
 	categoriesJSON, err := sonic.Marshal(params.Categories)
 	if err != nil {
-		return err
+		return db.CreatePostParams{}, err
 	}
 
-	filesJSON, err := sonic.Marshal(params.Files)
+	filesJSON, err := sonic.Marshal(params.Files) //TODO separated model may be needed
 	if err != nil {
-		return err
+		return db.CreatePostParams{}, err
 	}
 
-	err = p.queries.CreatePost(ctx, db.CreatePostParams{
+	return db.CreatePostParams{
 		ID:       params.ID,
 		Name:     params.Name,
 		Desc:     params.Description,
@@ -127,14 +109,5 @@ func (p PostPostgresRepository) Create(ctx context.Context, params post.CreatePo
 		Column6:  params.Tags,
 		Column7:  categoriesJSON,
 		Column8:  filesJSON,
-	})
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (p PostPostgresRepository) GetCountForTag(ctx context.Context, tag string) (int64, error) {
-	//TODO implement me
-	panic("implement me")
+	}, nil
 }

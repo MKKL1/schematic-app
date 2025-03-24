@@ -5,7 +5,7 @@ import (
 	"errors"
 	errorDB "github.com/MKKL1/schematic-app/server/internal/pkg/db"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/category"
-	"github.com/MKKL1/schematic-app/server/internal/services/post-service/infra/postgres/db"
+	"github.com/MKKL1/schematic-app/server/internal/services/post-service/postgres/db"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -27,8 +27,8 @@ func (c CategoryPostgresRepository) FindCategoryByName(ctx context.Context, name
 	}
 
 	return category.Entity{
-		Name:             dbCateg.Name,
-		ValueDefinitions: dbCateg.MetadataSchema,
+		Name:           dbCateg.Name,
+		MetadataSchema: dbCateg.MetadataSchema,
 	}, nil
 }
 

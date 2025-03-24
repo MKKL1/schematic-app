@@ -8,8 +8,8 @@ import (
 type MetadataSchema json.RawMessage
 
 type Entity struct {
-	Name             string
-	ValueDefinitions MetadataSchema
+	Name           string
+	MetadataSchema MetadataSchema
 }
 
 type Repository interface {

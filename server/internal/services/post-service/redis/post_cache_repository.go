@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/rueidisaside"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
-	postProto "github.com/MKKL1/schematic-app/server/internal/services/post-service/infra/proto"
+	proto2 "github.com/MKKL1/schematic-app/server/internal/services/post-service/proto"
 	"google.golang.org/protobuf/proto"
 	"time"
 )
@@ -19,7 +19,7 @@ func NewPostCacheRepository(baseRepo post.Repository, cacheClient rueidisaside.C
 	typedClient := rueidisaside.NewTypedCacheAsideClient(
 		cacheClient,
 		func(dbPost *post.Entity) (string, error) {
-			pbModel := postProto.FromEntity(*dbPost)
+			pbModel := proto2.FromEntity(*dbPost)
 			marshal, err := proto.Marshal(&pbModel)
 			if err != nil {
 				return "", err
@@ -27,13 +27,13 @@ func NewPostCacheRepository(baseRepo post.Repository, cacheClient rueidisaside.C
 			return string(marshal), err
 		},
 		func(d string) (*post.Entity, error) {
-			pbModel := postProto.PostEntity{}
+			pbModel := proto2.PostEntity{}
 			err := proto.Unmarshal([]byte(d), &pbModel)
 			if err != nil {
 				return nil, err
 			}
 
-			postModel := postProto.ToEntity(&pbModel)
+			postModel := proto2.ToEntity(&pbModel)
 			return &postModel, nil
 		},
 	)

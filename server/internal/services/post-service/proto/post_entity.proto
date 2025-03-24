@@ -4,7 +4,7 @@ package proto;
 
 option go_package = "github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post/proto";
 
-message PostEntity {
+message PostEntity { //TODO remove / replace with flatbuffers
   int64 id = 1;
   string name = 2;
   optional string desc = 3;

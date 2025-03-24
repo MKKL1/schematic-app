@@ -14,6 +14,7 @@ var (
 	ErrorCodePostNotFound apperr.Code = "POST_NOT_FOUND"
 )
 
+// TODO NOT PART OF DOMAIN
 func ErrorMapper(err error) error {
 	var code codes.Code
 	if appErr, ok := apperr.FromError(err); ok {

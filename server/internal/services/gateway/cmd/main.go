@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/client"
+	post2 "github.com/MKKL1/schematic-app/server/internal/pkg/client/post"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
 	"github.com/MKKL1/schematic-app/server/internal/services/gateway/http"
 	"github.com/MKKL1/schematic-app/server/internal/services/gateway/post"
@@ -30,7 +31,7 @@ func main() {
 		userController := user.NewController(userService)
 		user.RegisterRoutes(e, userController)
 
-		postService := client.NewPostClient(ctx, ":8002")
+		postService := post2.NewPostClient(ctx, ":8002")
 		//categService := client.NewCategoryClient(ctx, ":8003")
 		postController := post.NewController(postService)
 		post.RegisterRoutes(e, postController)

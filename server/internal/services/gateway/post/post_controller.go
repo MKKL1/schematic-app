@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/auth"
-	"github.com/MKKL1/schematic-app/server/internal/pkg/client"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/client/post"
 	"github.com/MKKL1/schematic-app/server/internal/services/gateway/grpc"
 	gtHttp "github.com/MKKL1/schematic-app/server/internal/services/gateway/http"
 	"github.com/go-playground/validator/v10"
@@ -29,10 +29,10 @@ func RegisterRoutes(e *echo.Echo, server *Controller) {
 
 type Controller struct {
 	validate *validator.Validate
-	postApp  client.PostApplication
+	postApp  post.PostApplication
 }
 
-func NewController(postApp client.PostApplication) *Controller {
+func NewController(postApp post.PostApplication) *Controller {
 	return &Controller{validator.New(validator.WithRequiredStructEnabled()), postApp}
 }
 
@@ -69,23 +69,21 @@ func (pc *Controller) CreatePost(c echo.Context) error {
 		return gtHttp.MapValidationError(err, requestData)
 	}
 
-	categParams := make([]client.CreateCategoryMetadataParams, len(requestData.Categories))
+	categParams := make([]post.CreatePostRequestCategory, len(requestData.Categories))
 	for i, cat := range requestData.Categories {
-		categParams[i] = client.CreateCategoryMetadataParams{
+		categParams[i] = post.CreatePostRequestCategory{
 			Name:     cat.Name,
 			Metadata: cat.Metadata,
 		}
 	}
 
-	filesParams := make([]client.CreatePostFileParams, len(requestData.Files))
+	filesParams := make([]uuid.UUID, len(requestData.Files))
 	for i, f := range requestData.Files {
 		fId, err := uuid.Parse(f)
 		if err != nil {
 			return err
 		}
-		filesParams[i] = client.CreatePostFileParams{
-			TempId: fId,
-		}
+		filesParams[i] = fId
 	}
 
 	var authorId *int64
@@ -97,7 +95,7 @@ func (pc *Controller) CreatePost(c echo.Context) error {
 		authorId = &_authorId
 	}
 
-	params := client.CreatePostParams{
+	params := post.CreatePostRequest{
 		Name:        requestData.Name,
 		Description: requestData.Description,
 		AuthorID:    authorId,

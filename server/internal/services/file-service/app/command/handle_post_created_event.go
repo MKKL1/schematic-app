@@ -10,7 +10,12 @@ import (
 //TODO refactor to better fit command pattern
 
 type PostCreated struct {
-	Files []string `json:"files"`
+	Files []PostCreatedFile `json:"files"`
+}
+
+type PostCreatedFile struct {
+	Name   string `json:"name"`
+	TempId string `json:"tempId"`
 }
 
 type PostCreatedHandler decorator.CommandHandler[PostCreated, any]
@@ -26,7 +31,7 @@ func NewPostCreatedHandler(commandBus *cqrs.CommandBus) PostCreatedHandler {
 func (m postCreatedHandler) Handle(ctx context.Context, cmd PostCreated) (any, error) {
 	for _, f := range cmd.Files {
 		err := m.commandBus.Send(ctx, file.CommitFile{
-			Id: f,
+			Id: f.TempId,
 		})
 		if err != nil {
 			return nil, err

@@ -8,8 +8,8 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/command"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/query"
-	"github.com/MKKL1/schematic-app/server/internal/services/post-service/infra/postgres"
-	"github.com/MKKL1/schematic-app/server/internal/services/post-service/infra/postgres/db"
+	postgres2 "github.com/MKKL1/schematic-app/server/internal/services/post-service/postgres"
+	"github.com/MKKL1/schematic-app/server/internal/services/post-service/postgres/db"
 	"github.com/bwmarrin/snowflake"
 )
 
@@ -26,8 +26,8 @@ func NewApplication(ctx context.Context) app.Application {
 	}
 
 	queries := db.New(dbPool)
-	postRepo := postgres.NewPostPostgresRepository(queries)
-	categoryRepo := postgres.NewCategoryPostgresRepository(queries)
+	postRepo := postgres2.NewPostPostgresRepository(queries)
+	categoryRepo := postgres2.NewCategoryPostgresRepository(queries)
 
 	//clientRed := server.NewRedisClient()
 	//TODO Move somewhere else

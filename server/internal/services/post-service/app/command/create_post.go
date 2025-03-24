@@ -15,26 +15,22 @@ import (
 	"github.com/google/uuid"
 )
 
-type CreatePostParams struct {
+type CreatePost struct {
 	Name        string
 	Description *string
 	AuthorID    *int64
 	Sub         uuid.UUID
-	Categories  []CategoryMetadataParams
+	Categories  []CreatePostCategory
 	Tags        []string
-	Files       []CreatePostFileParams
+	Files       []uuid.UUID
 }
 
-type CategoryMetadataParams struct {
+type CreatePostCategory struct {
 	Name     string
 	Metadata map[string]interface{}
 }
 
-type CreatePostFileParams struct {
-	TempId uuid.UUID
-}
-
-type CreatePostHandler decorator.CommandHandler[CreatePostParams, int64]
+type CreatePostHandler decorator.CommandHandler[CreatePost, int64]
 
 type createPostHandler struct {
 	repo         post.Repository
@@ -48,7 +44,7 @@ func NewCreatePostHandler(repo post.Repository, categoryRepo category.Repository
 	return createPostHandler{repo, categoryRepo, idNode, userService, eventBus}
 }
 
-func (h createPostHandler) Handle(ctx context.Context, params CreatePostParams) (int64, error) {
+func (h createPostHandler) Handle(ctx context.Context, params CreatePost) (int64, error) {
 	err := h.validateCategories(ctx, params.Categories)
 	if err != nil {
 		return 0, err
@@ -71,7 +67,7 @@ func (h createPostHandler) Handle(ctx context.Context, params CreatePostParams) 
 	for i, f := range params.Files {
 		files[i] = post.CreatePostFileParams{
 			Name:   "TODO", //TODO get name from file service, this should be done when checking if file exists
-			TempId: f.TempId.String(),
+			TempId: f.String(),
 		}
 	}
 
@@ -92,7 +88,7 @@ func (h createPostHandler) Handle(ctx context.Context, params CreatePostParams) 
 	}
 
 	go func() {
-		err = h.publishCreatePostEvent(ctx, newPost, params.Files)
+		err = h.publishCreatePostEvent(ctx, newPost)
 		if err != nil {
 			//TODO handle
 			//log or delete created post from database
@@ -102,16 +98,17 @@ func (h createPostHandler) Handle(ctx context.Context, params CreatePostParams) 
 	return newPost.ID, nil
 }
 
-func (h createPostHandler) publishCreatePostEvent(ctx context.Context, newPost post.CreatePostParams, files []CreatePostFileParams) error {
-	categs := make(post.PostCategoriesStructured, len(newPost.Categories))
+func (h createPostHandler) publishCreatePostEvent(ctx context.Context, newPost post.CreatePostParams) error {
+	categs := make(post.PostCategories, len(newPost.Categories))
 	for _, c := range newPost.Categories {
 		categs[c.Name] = c.Metadata
 	}
 
-	eventFiles := make([]post.PostCreatedFileData, len(files))
-	for i, f := range files {
+	eventFiles := make([]post.PostCreatedFileData, len(newPost.Files))
+	for i, f := range newPost.Files {
 		eventFiles[i] = post.PostCreatedFileData{
-			TempId: f.TempId.String(),
+			TempId: f.TempId,
+			Name:   f.Name,
 		}
 	}
 
@@ -133,7 +130,8 @@ func (h createPostHandler) publishCreatePostEvent(ctx context.Context, newPost p
 	return nil
 }
 
-func (h createPostHandler) validateCategories(ctx context.Context, categories []CategoryMetadataParams) error {
+// TODO may be in domain??
+func (h createPostHandler) validateCategories(ctx context.Context, categories []CreatePostCategory) error {
 	verrs := make(map[string]validator.ValidationError)
 	var ok = true
 	for _, categoryData := range categories {
@@ -147,7 +145,7 @@ func (h createPostHandler) validateCategories(ctx context.Context, categories []
 			return apperr.WrapErrorf(err, apperr.ErrorCodeUnknown, "CreatePostHandler: Handle: repo.FindCategoryByName")
 		}
 
-		schemaValidator := validator.NewSchemaValidator(categ.ValueDefinitions)
+		schemaValidator := validator.NewSchemaValidator(categ.MetadataSchema)
 
 		err = schemaValidator.Validate(categoryData.Metadata)
 		if err != nil {
