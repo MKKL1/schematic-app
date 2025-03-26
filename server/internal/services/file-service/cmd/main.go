@@ -5,7 +5,6 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/pkg/genproto"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/ports"
-	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
 	"google.golang.org/grpc"
 	"net/http"
 	"os"
@@ -21,7 +20,7 @@ func main() {
 	go func() {
 		application := NewApplication(ctx)
 
-		server.RunGRPCServer(ctx, ":8005", post.ErrorMapper, func(server *grpc.Server) {
+		server.RunGRPCServer(ctx, ":8005", ports.NewFileGrpcErrorMapper(), func(server *grpc.Server) {
 			srv := ports.NewGrpcServer(application)
 			genproto.RegisterFileServiceServer(server, srv)
 		})

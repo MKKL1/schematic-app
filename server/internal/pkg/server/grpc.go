@@ -31,7 +31,7 @@ func InterceptorLogger(l zerolog.Logger) logging.Logger {
 	})
 }
 
-func RunGRPCServer(ctx context.Context, addr string, errorMapper grpc2.ErrorMapper, registerServer func(server *grpc.Server)) {
+func RunGRPCServer(ctx context.Context, addr string, errorMapper func(err error) error, registerServer func(server *grpc.Server)) {
 	logger := zerolog.New(os.Stdout).With().Logger()
 	opts := []logging.Option{
 		logging.WithLogOnEvents(logging.StartCall, logging.FinishCall),

@@ -5,7 +5,7 @@ import (
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 )
 
-type ErrorMessageMapper func(c echo.Context, errInfo *errdetails.ErrorInfo, details []any) (*ErrorResponse, bool)
+type ErrorMessageMapper func(c echo.Context, errInfo *errdetails.ErrorInfo, details []any) (*GatewayError, bool)
 
 type DefaultErrorMessageMapper struct {
 	mapper map[string]ErrorMessageMapper
@@ -15,7 +15,7 @@ func NewDefaultErrorMessageMapper() *DefaultErrorMessageMapper {
 	return &DefaultErrorMessageMapper{mapper: make(map[string]ErrorMessageMapper)}
 }
 
-func (m *DefaultErrorMessageMapper) MapError(c echo.Context, errInfo *errdetails.ErrorInfo, details []any) (*ErrorResponse, bool) {
+func (m *DefaultErrorMessageMapper) MapError(c echo.Context, errInfo *errdetails.ErrorInfo, details []any) (*GatewayError, bool) {
 	mapper, ok := m.mapper[errInfo.Reason]
 	if !ok {
 		return nil, false

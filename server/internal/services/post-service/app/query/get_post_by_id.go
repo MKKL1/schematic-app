@@ -3,10 +3,12 @@ package query
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/apperr"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/db"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
+	"strconv"
 )
 
 type GetPostByIdParams struct {
@@ -26,10 +28,12 @@ func NewGetPostByIdHandler(repo post.Repository) GetPostByIdHandler {
 func (h getPostByIdHandler) Handle(ctx context.Context, params GetPostByIdParams) (post.Post, error) {
 	postModel, err := h.repo.FindById(ctx, params.Id)
 	if err != nil {
+		wrappedErr := fmt.Errorf("finding post by id %d: %w", params.Id, err)
 		if errors.Is(err, db.ErrNoRows) {
-			return post.Post{}, apperr.WrapErrorf(err, post.ErrorCodePostNotFound, "GetPostByIdHandler: Handle: repo.FindById")
+			return post.Post{}, apperr.NewSlugErrorWithCode(wrappedErr, post.ErrorSlugPostNotFound, apperr.ErrorCodeNotFound).
+				AddMetadata("id", strconv.FormatInt(params.Id, 10))
 		}
-		return post.Post{}, apperr.WrapErrorf(err, apperr.ErrorCodeUnknown, "GetPostByIdHandler: Handle: repo.FindById")
+		return post.Post{}, wrappedErr
 	}
 
 	return postModel, nil

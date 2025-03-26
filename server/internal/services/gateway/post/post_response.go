@@ -70,5 +70,6 @@ func PostToResponse(dto post.PostDto) PostResponse {
 		AuthorID:    authorID,
 		Categories:  categs,
 		Tags:        tags,
+		Files:       files,
 	}
 }

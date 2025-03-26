@@ -7,6 +7,7 @@ import (
 )
 
 type PostMetadataError struct {
+	//Key is category, value is array of errors
 	Errors map[string]validator.ValidationError
 }
 

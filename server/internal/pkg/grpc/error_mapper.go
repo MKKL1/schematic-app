@@ -2,20 +2,87 @@ package grpc
 
 import (
 	"context"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/apperr"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-// ErrorMapper is a function that converts an error from the domain layer into a gRPC status error.
-type ErrorMapper func(err error) error
-
-// DefaultErrorMapper is a fallback that maps any error to codes.Unknown.
-func DefaultErrorMapper(err error) error {
-	return status.Errorf(codes.Unknown, err.Error())
+type DefaultErrorMapper struct {
+	Mappers           []func(err error) (error, bool)
+	CustomSlugMappers map[string]func(err apperr.SlugError) error
+	FallBackMapper    func(err error) error
 }
 
-func ErrorMappingUnaryInterceptor(mapper ErrorMapper) grpc.UnaryServerInterceptor {
+func BuildGrpcError(err apperr.SlugError, grpcCode codes.Code, message string) error {
+	st := status.New(grpcCode, message)
+
+	errorInfo := &errdetails.ErrorInfo{
+		Reason:   err.Slug,
+		Domain:   "schem",
+		Metadata: err.Metadata,
+	}
+	stWithDetails, errDetails := st.WithDetails(errorInfo)
+	if errDetails != nil {
+		// In the rare case that attaching details fails, log and return the original status.
+		return st.Err()
+	}
+	return stWithDetails.Err()
+}
+
+func fallbackMapper(err error) error {
+	if slugErr, ok := apperr.FromError(err); ok {
+		var code codes.Code
+		switch slugErr.Code {
+		case apperr.ErrorCodeNotFound:
+			code = codes.NotFound
+		case apperr.ErrorCodeBadRequest:
+			code = codes.InvalidArgument
+		case apperr.ErrorCodeConflict:
+			code = codes.AlreadyExists
+		case apperr.ErrorCodeUnauthorized:
+			code = codes.Unauthenticated
+		default:
+			code = codes.Unknown
+		}
+
+		return BuildGrpcError(*slugErr, code, slugErr.Error())
+	}
+
+	return status.Error(codes.Internal, err.Error())
+}
+
+func NewDefaultErrorMapper() *DefaultErrorMapper {
+	return &DefaultErrorMapper{
+		Mappers:           make([]func(err error) (error, bool), 0),
+		CustomSlugMappers: make(map[string]func(err apperr.SlugError) error),
+		FallBackMapper:    fallbackMapper,
+	}
+}
+
+func (dmm DefaultErrorMapper) Map(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	for _, handler := range dmm.Mappers {
+		newErr, ok := handler(err)
+		if ok {
+			return newErr
+		}
+	}
+
+	if slugErr, ok := apperr.FromError(err); ok {
+		if errMapper, found := dmm.CustomSlugMappers[slugErr.Slug]; found {
+			return errMapper(*slugErr)
+		}
+	}
+
+	return dmm.FallBackMapper(err)
+}
+
+func ErrorMappingUnaryInterceptor(mapper func(err error) error) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req interface{},

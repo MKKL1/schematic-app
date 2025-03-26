@@ -6,7 +6,9 @@ import (
 )
 
 type FieldError struct {
-	Field   string
+	// Field name of field in category metadata schema
+	Field string
+	// Message error message
 	Message string
 }
 

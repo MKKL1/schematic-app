@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/apperr"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/client"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/db"
@@ -45,14 +46,14 @@ func NewCreatePostHandler(repo post.Repository, categoryRepo category.Repository
 }
 
 func (h createPostHandler) Handle(ctx context.Context, params CreatePost) (int64, error) {
-	err := h.validateCategories(ctx, params.Categories)
+	err := h.validateCategories(ctx, params.Categories) //TODO validation should be in domain
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("validating post categories: %w", err)
 	}
 
 	user, err := h.userService.Query.GetUserBySub(ctx, params.Sub)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("querying user by sub: %w", err)
 	}
 
 	categs := make([]post.CreatePostCategoryParams, len(params.Categories))
@@ -71,7 +72,7 @@ func (h createPostHandler) Handle(ctx context.Context, params CreatePost) (int64
 		}
 	}
 
-	newPost := post.CreatePostParams{
+	newPost := post.CreatePostParams{ //TODO construct in domain
 		ID:          h.idNode.Generate().Int64(),
 		Name:        params.Name,
 		Description: params.Description,
@@ -84,7 +85,7 @@ func (h createPostHandler) Handle(ctx context.Context, params CreatePost) (int64
 
 	err = h.repo.Create(ctx, newPost)
 	if err != nil {
-		return 0, apperr.WrapErrorf(err, apperr.ErrorCodeUnknown, "CreatePostHandler: Handle: repo.Create")
+		return 0, fmt.Errorf("creating post in repo: %w", err)
 	}
 
 	go func() {
@@ -125,7 +126,7 @@ func (h createPostHandler) publishCreatePostEvent(ctx context.Context, newPost p
 
 	err := h.eventBus.Publish(ctx, event)
 	if err != nil {
-		return apperr.WrapErrorf(err, apperr.ErrorCodeUnknown, "CreatePostHandler: Publish")
+		return fmt.Errorf("publishing event: %w", err)
 	}
 	return nil
 }
@@ -136,17 +137,17 @@ func (h createPostHandler) validateCategories(ctx context.Context, categories []
 	var ok = true
 	for _, categoryData := range categories {
 		//TODO can be bulk
-		categ, err := h.categoryRepo.FindCategoryByName(ctx, categoryData.Name)
+		categoryModel, err := h.categoryRepo.FindCategoryByName(ctx, categoryData.Name)
 		if err != nil {
+			wrappedErr := fmt.Errorf("finding category %q: %w", categoryData.Name, err)
 			if errors.Is(err, db.ErrNoRows) {
-				return apperr.WrapErrorf(err, category.ErrorCodeCategoryNotFound, "CreatePostHandler: validateCategories: repo.FindCategoryByName").
+				return apperr.NewSlugErrorWithCode(wrappedErr, category.ErrorSlugCategoryNotFound, apperr.ErrorCodeNotFound).
 					AddMetadata("name", categoryData.Name)
 			}
-			return apperr.WrapErrorf(err, apperr.ErrorCodeUnknown, "CreatePostHandler: Handle: repo.FindCategoryByName")
+			return wrappedErr
 		}
 
-		schemaValidator := validator.NewSchemaValidator(categ.MetadataSchema)
-
+		schemaValidator := validator.NewSchemaValidator(categoryModel.MetadataSchema)
 		err = schemaValidator.Validate(categoryData.Metadata)
 		if err != nil {
 			validationErrors := &validator.ValidationError{}

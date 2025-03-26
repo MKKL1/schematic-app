@@ -13,6 +13,21 @@ type GatewayError struct {
 	ErrResponse ErrorResponse
 }
 
+func NewSimpleGatewayError(httpCode int, reason string, message string, metadata map[string]string) *GatewayError {
+	return &GatewayError{
+		HttpCode: httpCode,
+		ErrResponse: ErrorResponse{
+			Errors: []ErrorDetail{
+				{
+					Reason:   reason,
+					Message:  message,
+					Metadata: metadata,
+				},
+			},
+		},
+	}
+}
+
 func (e *GatewayError) Error() string {
 	if len(e.ErrResponse.Errors) > 0 {
 		return e.ErrResponse.Errors[0].Message

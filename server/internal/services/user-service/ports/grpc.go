@@ -3,12 +3,18 @@ package ports
 import (
 	"context"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/genproto"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/grpc"
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/app"
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/app/command"
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/app/query"
 	domainUser "github.com/MKKL1/schematic-app/server/internal/services/user-service/domain/user"
 	"github.com/google/uuid"
 )
+
+func NewUserGrpcErrorMapper() func(error) error {
+	mapper := grpc.NewDefaultErrorMapper()
+	return mapper.Map
+}
 
 type GrpcServer struct {
 	genproto.UnimplementedUserServiceServer

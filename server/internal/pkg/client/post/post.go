@@ -6,28 +6,20 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/pkg/genproto"
 )
 
-type PostApplication struct {
-	Command PostCommandService
-	Query   PostQueryService
-}
-
-type PostCommandService interface {
+type Service interface {
 	CreatePost(ctx context.Context, params CreatePostRequest) (int64, error)
-}
-
-type PostQueryService interface {
 	GetPostById(ctx context.Context, id int64) (PostDto, error)
 }
 
-type PostCommandGrpcService struct {
+type GrpcService struct {
 	grpcClient genproto.PostServiceClient
 }
 
-func NewPostCommandGrpcService(grpcClient genproto.PostServiceClient) *PostCommandGrpcService {
-	return &PostCommandGrpcService{grpcClient: grpcClient}
+func NewGrpcService(grpcClient genproto.PostServiceClient) *GrpcService {
+	return &GrpcService{grpcClient: grpcClient}
 }
 
-func (p PostCommandGrpcService) CreatePost(ctx context.Context, params CreatePostRequest) (int64, error) {
+func (p GrpcService) CreatePost(ctx context.Context, params CreatePostRequest) (int64, error) {
 	protoRequest, err := CreatePostRequestDtoToProto(params)
 	if err != nil {
 		return 0, err
@@ -40,15 +32,7 @@ func (p PostCommandGrpcService) CreatePost(ctx context.Context, params CreatePos
 	return createdId.Id, err
 }
 
-type PostQueryGrpcService struct {
-	grpcClient genproto.PostServiceClient
-}
-
-func NewPostQueryGrpcService(grpcClient genproto.PostServiceClient) *PostQueryGrpcService {
-	return &PostQueryGrpcService{grpcClient: grpcClient}
-}
-
-func (p PostQueryGrpcService) GetPostById(ctx context.Context, id int64) (PostDto, error) {
+func (p GrpcService) GetPostById(ctx context.Context, id int64) (PostDto, error) {
 	post, err := p.grpcClient.GetPostById(ctx, &genproto.PostByIdRequest{Id: id})
 	if err != nil {
 		return PostDto{}, err
@@ -57,19 +41,9 @@ func (p PostQueryGrpcService) GetPostById(ctx context.Context, id int64) (PostDt
 	return ProtoToDto(post)
 }
 
-func NewPostClient(ctx context.Context, addr string) PostApplication {
+func NewPostClient(ctx context.Context, addr string) Service {
 	conn := client.NewConnection(ctx, addr)
 
 	service := genproto.NewPostServiceClient(conn)
-	query := PostQueryGrpcService{
-		grpcClient: service,
-	}
-	command := PostCommandGrpcService{
-		grpcClient: service,
-	}
-
-	return PostApplication{
-		Query:   query,
-		Command: command,
-	}
+	return GrpcService{grpcClient: service}
 }

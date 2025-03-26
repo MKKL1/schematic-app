@@ -7,6 +7,7 @@ import (
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"net/http"
 )
 
 var Mapper = NewDefaultErrorMessageMapper()
@@ -21,18 +22,22 @@ func GRPCErrorToDetailedHTTPResponse(c echo.Context, err error) (int, interface{
 	userMessage := st.Message()
 	log.Error().Msg(userMessage)
 
-	var errResp ErrorResponse
+	var errResp GatewayError
 
 	for _, detail := range st.Details() {
 		if info, ok := detail.(*errdetails.ErrorInfo); ok {
 			mappedErr, ok := Mapper.MapError(c, info, st.Details())
 			if !ok || mappedErr == nil {
-				errResp = ErrorResponse{
-					Errors: []ErrorDetail{
-						{
-							Reason:   "INTERNAL_ERROR",
-							Message:  "An unexpected error occurred",
-							Metadata: map[string]string{},
+				httpStatus = http.StatusInternalServerError //TODO or service unavailable
+				errResp = GatewayError{
+					HttpCode: httpStatus,
+					ErrResponse: ErrorResponse{
+						Errors: []ErrorDetail{
+							{
+								Reason:   "INTERNAL_ERROR",
+								Message:  "An unexpected error occurred",
+								Metadata: map[string]string{},
+							},
 						},
 					},
 				}
@@ -44,5 +49,5 @@ func GRPCErrorToDetailedHTTPResponse(c echo.Context, err error) (int, interface{
 		}
 	}
 
-	return httpStatus, errResp
+	return httpStatus, errResp.ErrResponse
 }

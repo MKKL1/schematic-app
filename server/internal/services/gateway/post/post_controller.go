@@ -6,13 +6,10 @@ import (
 	"fmt"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/auth"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/client/post"
-	"github.com/MKKL1/schematic-app/server/internal/services/gateway/grpc"
 	gtHttp "github.com/MKKL1/schematic-app/server/internal/services/gateway/http"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
-	"google.golang.org/genproto/googleapis/rpc/errdetails"
-	"google.golang.org/grpc/status"
 	"net/http"
 	"strconv"
 	"strings"
@@ -28,11 +25,11 @@ func RegisterRoutes(e *echo.Echo, server *Controller) {
 }
 
 type Controller struct {
-	validate *validator.Validate
-	postApp  post.PostApplication
+	validate    *validator.Validate
+	postService post.Service
 }
 
-func NewController(postApp post.PostApplication) *Controller {
+func NewController(postApp post.Service) *Controller {
 	return &Controller{validator.New(validator.WithRequiredStructEnabled()), postApp}
 }
 
@@ -43,7 +40,7 @@ func (pc *Controller) GetPost(c echo.Context) error {
 	}
 
 	ctx := context.Background()
-	postDto, err := pc.postApp.Query.GetPostById(ctx, id)
+	postDto, err := pc.postService.GetPostById(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -105,43 +102,9 @@ func (pc *Controller) CreatePost(c echo.Context) error {
 		Files:       filesParams,
 	}
 
-	id, err := pc.postApp.Command.CreatePost(ctx, params)
+	id, err := pc.postService.CreatePost(ctx, params)
 	if err != nil {
-		//TODO move to other function
-		st, ok := status.FromError(err)
-		if ok {
-			errInfo, found := grpc.GetMessage[errdetails.ErrorInfo](st.Details())
-			if !found {
-				return err
-			}
-
-			if errInfo.GetReason() != "POST_METADATA_VALIDATION_ERROR" {
-				return err
-			}
-
-			badRequest, found := grpc.GetMessage[errdetails.BadRequest](st.Details())
-			if !found {
-				return err
-			}
-
-			var errDetails []gtHttp.ErrorDetail
-			for _, v := range badRequest.GetFieldViolations() {
-				parameter := mapFieldPath(v.GetField(), requestData)
-				errDetails = append(errDetails, gtHttp.ValidationErrorBuilder{
-					Parameter: parameter,
-					Detail:    v.GetReason(),
-					Message:   v.GetDescription(),
-				}.Build())
-			}
-
-			return &gtHttp.GatewayError{
-				HttpCode: http.StatusBadRequest,
-				ErrResponse: gtHttp.ErrorResponse{
-					Errors: errDetails,
-				},
-			}
-		}
-
+		return HandlePostCreateErr(err, requestData)
 	}
 
 	return c.JSON(http.StatusCreated, map[string]string{"id": strconv.FormatInt(id, 10)})

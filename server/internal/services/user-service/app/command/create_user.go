@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/apperr"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/db"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
@@ -36,16 +37,19 @@ func (h createUserHandler) Handle(ctx context.Context, params CreateUserParams) 
 
 	_, err := h.repo.CreateUser(ctx, newUser)
 	if err != nil {
+		//Implementing domain logic with repository //TODO refactor
+		wrappedErr := fmt.Errorf("creating user %s in repo: %w", params.Sub.String(), err)
+
 		var e *db.UniqueConstraintError
 		if errors.As(err, &e) {
 			switch e.Field {
 			case "OidcSub":
-				return 0, apperr.WrapErrorf(err, user.ErrorCodeSubConflict, "repo.CreateUser: conflicting OidcSub: %s", params.Sub.String())
+				return 0, apperr.NewSlugErrorWithCode(wrappedErr, user.ErrorSlugSubConflict, apperr.ErrorCodeConflict)
 			case "Name":
-				return 0, apperr.WrapErrorf(err, user.ErrorCodeNameConflict, "repo.CreateUser: conflicting Name: %s", params.Username)
+				return 0, apperr.NewSlugErrorWithCode(wrappedErr, user.ErrorSlugNameConflict, apperr.ErrorCodeConflict)
 			}
 		}
-		return 0, apperr.WrapErrorf(err, apperr.ErrorCodeUnknown, "repo.CreateUser")
+		return 0, wrappedErr
 	}
 
 	return user.ID(newUser.ID), nil
