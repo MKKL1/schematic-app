@@ -8,6 +8,7 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/command"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/query"
+	"github.com/MKKL1/schematic-app/server/internal/services/post-service/ports"
 	postgres2 "github.com/MKKL1/schematic-app/server/internal/services/post-service/postgres"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/postgres/db"
 	"github.com/bwmarrin/snowflake"
@@ -49,12 +50,18 @@ func NewApplication(ctx context.Context) app.Application {
 	userService := client.NewUsersClient(ctx, ":8001")
 	cqrsHandler := kafka.NewCqrsHandler(kafka.KafkaConfig{Brokers: []string{"localhost:9092"}})
 
-	return app.Application{
+	a := app.Application{
 		Commands: app.Commands{
-			CreatePost: command.NewCreatePostHandler(postRepo, categoryRepo, idNode, userService, cqrsHandler.EventBus),
+			CreatePost:     command.NewCreatePostHandler(postRepo, categoryRepo, idNode, userService, cqrsHandler.EventBus),
+			UpdateFileHash: command.NewUpdateAttachedFilesHandler(postRepo),
 		},
 		Queries: app.Queries{
 			GetPostById: query.NewGetPostByIdHandler(postRepo),
 		},
 	}
+
+	ports.NewEventHandlers(a, cqrsHandler)
+	cqrsHandler.Run(ctx)
+
+	return a
 }

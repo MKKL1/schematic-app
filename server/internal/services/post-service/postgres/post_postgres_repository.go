@@ -7,6 +7,7 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/mappers"
 	db2 "github.com/MKKL1/schematic-app/server/internal/services/post-service/postgres/db"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -46,4 +47,22 @@ func (p PostPostgresRepository) Create(ctx context.Context, params post.CreatePo
 func (p PostPostgresRepository) GetCountForTag(ctx context.Context, tag string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
+}
+
+func (p PostPostgresRepository) UpdateFileHashByTempId(ctx context.Context, params []post.UpdateFileHashParams) error {
+	tempIds := make([]uuid.UUID, len(params))
+	hashes := make([]string, len(params))
+	for i, param := range params {
+		tempIds[i] = param.TempId
+		hashes[i] = param.Hash
+	}
+
+	err := p.queries.UpdateAttachedFilesHash(ctx, db2.UpdateAttachedFilesHashParams{
+		Column1: tempIds,
+		Column2: hashes,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }

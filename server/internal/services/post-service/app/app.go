@@ -11,7 +11,8 @@ type Application struct {
 }
 
 type Commands struct {
-	CreatePost command.CreatePostHandler
+	CreatePost     command.CreatePostHandler
+	UpdateFileHash command.UpdateFileHashHandler
 }
 
 type Queries struct {

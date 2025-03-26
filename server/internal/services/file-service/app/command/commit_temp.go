@@ -32,7 +32,7 @@ func NewCommitTempHandler(storageClient file.StorageClient, repo file.Repository
 }
 
 func (m commitTempHandler) Handle(ctx context.Context, cmd CommitTempParams) (CommitTempResult, error) {
-	tempFile, err := m.repo.GetAndMarkTempFileProcessing(ctx, cmd.Key)
+	tempFile, err := m.repo.GetAndMarkTempFileProcessing(ctx, cmd.Key) //TODO transaction?
 	if err != nil {
 		return CommitTempResult{}, err
 	}

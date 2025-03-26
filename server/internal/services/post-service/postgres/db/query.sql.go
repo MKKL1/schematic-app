@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const createPost = `-- name: CreatePost :exec
@@ -147,4 +149,27 @@ func (q *Queries) GetPost(ctx context.Context, id int64) (GetPostRow, error) {
 		&i.Files,
 	)
 	return i, err
+}
+
+const updateAttachedFilesHash = `-- name: UpdateAttachedFilesHash :exec
+UPDATE attached_files
+SET
+    hash = data.hash,
+    updated_at = NOW()
+FROM (
+         SELECT
+             unnest($1::uuid[]) AS temp_id,
+             unnest($2::text[]) AS hash
+     ) AS data
+WHERE attached_files.temp_id = data.temp_id
+`
+
+type UpdateAttachedFilesHashParams struct {
+	Column1 []uuid.UUID
+	Column2 []string
+}
+
+func (q *Queries) UpdateAttachedFilesHash(ctx context.Context, arg UpdateAttachedFilesHashParams) error {
+	_, err := q.db.Exec(ctx, updateAttachedFilesHash, arg.Column1, arg.Column2)
+	return err
 }

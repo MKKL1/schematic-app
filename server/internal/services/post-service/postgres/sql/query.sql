@@ -76,3 +76,15 @@ SELECT id FROM ins_post;
 -- name: GetCategory :one
 SELECT * FROM categories
 WHERE name = $1;
+
+-- name: UpdateAttachedFilesHash :exec
+UPDATE attached_files
+SET
+    hash = data.hash,
+    updated_at = NOW()
+FROM (
+         SELECT
+             unnest($1::uuid[]) AS temp_id,
+             unnest($2::text[]) AS hash
+     ) AS data
+WHERE attached_files.temp_id = data.temp_id;

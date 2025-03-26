@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"log/slog"
+	"time"
 )
 
 type KafkaConfig struct {
@@ -70,6 +71,18 @@ func NewCqrsHandler(config KafkaConfig) CqrsHandler {
 			return h(msg)
 		}
 	})
+	router.AddMiddleware(middleware.Retry{
+		MaxRetries:          5,                      // Maximum 5 retry attempts
+		InitialInterval:     500 * time.Millisecond, // First retry after 500ms
+		Multiplier:          2.0,                    // Exponential backoff (doubles each time)
+		MaxInterval:         5 * time.Second,        // Maximum wait time per retry
+		MaxElapsedTime:      30 * time.Second,       // Stop retrying after 30 seconds
+		RandomizationFactor: 0.5,                    // Introduce randomness to avoid retry bursts
+		OnRetryHook: func(retryNum int, delay time.Duration) {
+			log.Debug().Msg("retry hook triggered")
+		},
+		Logger: logger,
+	}.Middleware)
 
 	commandBus, err := cqrs.NewCommandBusWithConfig(publisher, cqrs.CommandBusConfig{
 		GeneratePublishTopic: func(params cqrs.CommandBusGeneratePublishTopicParams) (string, error) {
