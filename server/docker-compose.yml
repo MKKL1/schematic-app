@@ -12,16 +12,16 @@ services:
       - POSTGRES_USER=root
       - POSTGRES_DB=sh_user
 
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.0.7
-    environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-    volumes:
-      - keycloak:/opt/keycloak/data/
-    ports:
-      - "8082:8080"
-    command: start-dev
+#  keycloak:
+#    image: quay.io/keycloak/keycloak:26.0.7
+#    environment:
+#      KEYCLOAK_ADMIN: admin
+#      KEYCLOAK_ADMIN_PASSWORD: admin
+#    volumes:
+#      - keycloak:/opt/keycloak/data/
+#    ports:
+#      - "8082:8080"
+#    command: start-dev
 
   redis:
     image: redis:alpine
@@ -45,6 +45,8 @@ services:
       MINIO_ROOT_USER: minio
       MINIO_ROOT_PASSWORD: minio123
     command: server /data --console-address ":9001"
+    networks:
+      - local
 
   kafka:
     image: confluentinc/cp-kafka:7.8.0
@@ -80,6 +82,23 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
     depends_on:
       - kafka
+    networks:
+      - local
+
+  imgproxy:
+    image: ghcr.io/imgproxy/imgproxy:latest
+    environment:
+      - IMGPROXY_USE_S3=true
+      - IMGPROXY_S3_ENDPOINT=http://minio:9000
+      - IMGPROXY_ALLOWED_SOURCES=s3://images
+      - IMGPROXY_S3_BUCKET=images
+      - IMGPROXY_S3_REGION=us-east-1
+      - IMGPROXY_USE_ETAG=true
+      - AWS_ACCESS_KEY_ID=1a83yMGKSWsdao695UAD # TODO env var
+      - AWS_SECRET_ACCESS_KEY=wF7cGjuTXhafoSMV2Q9DmjzWevYwgY94VHUO2Vmm # TODO env var
+      - AWS_REGION=local
+    ports:
+      - "9004:8080"
     networks:
       - local
 

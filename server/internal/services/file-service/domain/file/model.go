@@ -4,6 +4,14 @@ import (
 	"time"
 )
 
+type Type string
+
+const (
+	Image     Type = "image"
+	Schematic Type = "schematic"
+	Unknown   Type = "unknown"
+)
+
 type TempFileCreated struct {
 	Key        string
 	Expiration time.Time

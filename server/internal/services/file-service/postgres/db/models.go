@@ -9,11 +9,18 @@ import (
 )
 
 type File struct {
-	Hash        string
-	FileSize    int32
-	ContentType string
-	CreatedAt   pgtype.Timestamptz
-	UpdatedAt   pgtype.Timestamptz
+	Hash           string
+	OriginalTempID string
+	FileSize       int32
+	ContentType    string
+	CreatedAt      pgtype.Timestamptz
+	UpdatedAt      pgtype.Timestamptz
+}
+
+type Image struct {
+	FileHash  string
+	ImageType string
+	CreatedAt pgtype.Timestamptz
 }
 
 type TmpFile struct {

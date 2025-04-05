@@ -3,15 +3,15 @@ package postgres
 import (
 	"context"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/domain/file"
-	"github.com/MKKL1/schematic-app/server/internal/services/file-service/infra/postgres/db"
+	db2 "github.com/MKKL1/schematic-app/server/internal/services/file-service/postgres/db"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type FilePostgresRepository struct {
-	queries *db.Queries
+	queries *db2.Queries
 }
 
-func NewFilePostgresRepository(queries *db.Queries) *FilePostgresRepository {
+func NewFilePostgresRepository(queries *db2.Queries) *FilePostgresRepository {
 	return &FilePostgresRepository{queries}
 }
 
@@ -25,7 +25,7 @@ func (f FilePostgresRepository) GetTempFile(ctx context.Context, key string) (fi
 }
 
 func (f FilePostgresRepository) CreateTempFile(ctx context.Context, params file.CreateTempFileParams) error {
-	err := f.queries.CreateTempFile(ctx, db.CreateTempFileParams{
+	err := f.queries.CreateTempFile(ctx, db2.CreateTempFileParams{
 		StoreKey: params.Key,
 		FileName: params.FileName,
 		ExpiresAt: pgtype.Timestamptz{
@@ -78,7 +78,7 @@ func (f FilePostgresRepository) FileExists(ctx context.Context, hash string) (bo
 }
 
 func (f FilePostgresRepository) CreateFile(ctx context.Context, params file.CreateFileParams) error {
-	err := f.queries.CreateFile(ctx, db.CreateFileParams{
+	err := f.queries.CreateFile(ctx, db2.CreateFileParams{
 		Hash:        params.Hash,
 		FileSize:    params.FileSize,
 		ContentType: params.ContentType,
@@ -107,7 +107,7 @@ func (f FilePostgresRepository) MarkTempFileFailed(ctx context.Context, key stri
 }
 
 func (f FilePostgresRepository) MarkTempFileProcessed(ctx context.Context, key string, finalHash string) error {
-	err := f.queries.MarkTempFileProcessed(ctx, db.MarkTempFileProcessedParams{
+	err := f.queries.MarkTempFileProcessed(ctx, db2.MarkTempFileProcessedParams{
 		StoreKey:  key,
 		FinalHash: &finalHash,
 	})
@@ -117,7 +117,7 @@ func (f FilePostgresRepository) MarkTempFileProcessed(ctx context.Context, key s
 	return nil
 }
 
-func toDto(model db.TmpFile) file.TempFile {
+func toDto(model db2.TmpFile) file.TempFile {
 	return file.TempFile{
 		Key:         model.StoreKey,
 		FileName:    model.FileName,

@@ -8,11 +8,15 @@ type TmpFileUploaded struct {
 }
 
 type CommitFile struct {
-	Id string `json:"id"`
+	Id       string            `json:"id"`
+	Type     string            `json:"type"`
+	Metadata map[string]string `json:"metadata"`
 }
 
 type FileCreated struct {
-	TempID  string `json:"temp_id"`
-	PermID  string `json:"perm_id"`
-	Existed bool   `json:"existed"`
+	TempID   string            `json:"temp_id"`
+	PermID   string            `json:"perm_id"`
+	Existed  bool              `json:"existed"`
+	Type     string            `json:"type"`
+	Metadata map[string]string `json:"metadata"`
 }

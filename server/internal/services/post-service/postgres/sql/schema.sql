@@ -16,7 +16,7 @@ create table gallery_image
     post_id  bigint
         constraint gallery_image_post_id_fk
             references post,
-    file_id text not null,
+    image_id text not null,
     "order" smallint not null,
     "desc"   text
 );
@@ -24,9 +24,12 @@ create table gallery_image
 create table attached_files
 (
     hash text,
-    temp_id uuid, 
-    post_id bigint not null references post, --TODO add index
-    name text not null,
+    temp_id uuid,
+    post_id bigint not null references post on delete cascade, --TODO add index
+    description text,
+    file_name text not null,
+    mine_type text not null,
+    minecraft_version text not null,
     file_size int not null default 0,
     downloads int not null default 0,
     created_at timestamptz not null default NOW(),

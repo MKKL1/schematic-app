@@ -11,7 +11,8 @@ type Commands struct {
 	UploadTempFile     command.UploadTempFileHandler
 	DeleteExpiredFiles command.DeleteExpiredFilesHandler
 	CommitTempFile     command.CommitTempHandler
-	PostCreatedHandler command.PostCreatedHandler
+	PostCreatedHandler command.PostCreatedHandler // Handles the PostCreated event
+	ProcessImage       command.ProcessImageHandler
 }
 
 type Queries struct {

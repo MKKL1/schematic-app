@@ -15,8 +15,16 @@ CREATE INDEX idx_temporary_files_expires_at ON tmp_file(expires_at);
 
 create table file (
     hash text primary key,
+    original_temp_id text not null references tmp_file(store_key),
     file_size int not null,
     content_type text not null,
     created_at timestamptz not null default NOW(),
     updated_at timestamptz not null default NOW()
+);
+
+create table image (
+    file_hash text not null references file(hash),
+    image_type text not null, --Gallery/avatar...
+    created_at timestamptz not null default NOW(),
+    primary key(file_hash, image_type)
 );
