@@ -90,13 +90,15 @@ services:
     environment:
       - IMGPROXY_USE_S3=true
       - IMGPROXY_S3_ENDPOINT=http://minio:9000
-      - IMGPROXY_ALLOWED_SOURCES=s3://images
+      - IMGPROXY_ALLOWED_SOURCES=s3://files
       - IMGPROXY_S3_BUCKET=images
       - IMGPROXY_S3_REGION=us-east-1
       - IMGPROXY_USE_ETAG=true
       - AWS_ACCESS_KEY_ID=1a83yMGKSWsdao695UAD # TODO env var
       - AWS_SECRET_ACCESS_KEY=wF7cGjuTXhafoSMV2Q9DmjzWevYwgY94VHUO2Vmm # TODO env var
       - AWS_REGION=local
+      - IMGPROXY_KEY=2b33e772e9d2c041f289a5babf817bd0f4247be9d9e028cf9bf1b359d5cd6641
+      - IMGPROXY_SALT=087c98d789b3d79f145c1ca33cfcd2456daad64945816881de493fe875045d10
     ports:
       - "9004:8080"
     networks:

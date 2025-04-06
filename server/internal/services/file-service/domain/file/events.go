@@ -13,7 +13,7 @@ type CommitFile struct {
 	Metadata map[string]string `json:"metadata"`
 }
 
-type FileCreated struct {
+type FileUploaded struct {
 	TempID   string            `json:"temp_id"`
 	PermID   string            `json:"perm_id"`
 	Existed  bool              `json:"existed"`

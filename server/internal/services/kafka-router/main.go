@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	"github.com/IBM/sarama"
+	"github.com/bytedance/sonic"
 	"log"
 	"os"
 	"os/signal"
@@ -21,8 +22,8 @@ Routes events.FileCreated event based on it's content type (image, minecraft-sch
 var (
 	brokers                             = []string{"localhost:9092"}
 	fileUploadedStream      goka.Stream = "events.FileCreated"
-	imageUploadedStream     goka.Stream = "events.ImageCreated"
-	schematicUploadedStream goka.Stream = "events.SchematicCreated"
+	imageUploadedStream     goka.Stream = "events.ImageUploaded"
+	schematicUploadedStream goka.Stream = "events.SchematicUploaded"
 	group                   goka.Group  = "file-uploaded-group"
 )
 
@@ -39,12 +40,12 @@ type FileUploaded struct {
 type FileUploadedCodec struct{}
 
 func (c *FileUploadedCodec) Encode(value interface{}) ([]byte, error) {
-	return json.Marshal(value)
+	return sonic.Marshal(value)
 }
 
 func (c *FileUploadedCodec) Decode(data []byte) (interface{}, error) {
 	var fu FileUploaded
-	if err := json.Unmarshal(data, &fu); err != nil {
+	if err := sonic.Unmarshal(data, &fu); err != nil {
 		return nil, err
 	}
 	return &fu, nil
@@ -61,13 +62,11 @@ func process(ctx goka.Context, msg interface{}) {
 
 	switch fu.Type {
 	case "image":
-		// Emit event to the "image-uploaded" stream.
 		ctx.Emit(imageUploadedStream, ctx.Key(), fu)
-		log.Printf("Emitted image-uploaded event for key %s", ctx.Key())
+		log.Printf("Emitted %s event for key %s", imageUploadedStream, ctx.Key())
 	case "minecraft-schematic":
-		// Emit event to the "schematic-uploaded" stream.
 		ctx.Emit(schematicUploadedStream, ctx.Key(), fu)
-		log.Printf("Emitted schematic-uploaded event for key %s", ctx.Key())
+		log.Printf("Emitted %s event for key %s", schematicUploadedStream, ctx.Key())
 	default:
 		log.Printf("unsupported type: %s", fu.Type)
 	}
@@ -83,8 +82,12 @@ func main() {
 		goka.Output(schematicUploadedStream, new(FileUploadedCodec)),
 	)
 
+	config := sarama.NewConfig()
+	// If no offset is committed, start from the oldest message.
+	config.Consumer.Offsets.Initial = sarama.OffsetOldest
+
 	// Create a new processor.
-	processor, err := goka.NewProcessor(brokers, g)
+	processor, err := goka.NewProcessor(brokers, g, goka.WithConsumerSaramaBuilder(goka.SaramaConsumerBuilderWithConfig(config)))
 	if err != nil {
 		log.Fatalf("Error creating processor: %v", err)
 	}

@@ -80,7 +80,7 @@ func (h commitTempHandler) Handle(ctx context.Context, cmd CommitTempParams) (Co
 		// Still proceed to publish event as the file *is* available.
 	}
 
-	err = h.publishCreatedFileEvent(ctx, file.FileCreated{
+	err = h.publishCreatedFileEvent(ctx, file.FileUploaded{
 		TempID:   tempFile.Key,
 		PermID:   finalFileHash,
 		Existed:  exists,
@@ -89,7 +89,7 @@ func (h commitTempHandler) Handle(ctx context.Context, cmd CommitTempParams) (Co
 	})
 	if err != nil {
 		// Log non-critical error: Event publishing failed, main operation succeeded.
-		log.Error().Err(err).Msg("Failed to publish FileCreated event")
+		log.Error().Err(err).Msg("Failed to publish FileUploaded event")
 	}
 
 	return CommitTempResult{Hash: finalFileHash}, nil
@@ -144,6 +144,6 @@ func (h commitTempHandler) computeHash(ctx context.Context, object string) (stri
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
-func (h commitTempHandler) publishCreatedFileEvent(ctx context.Context, event file.FileCreated) error {
+func (h commitTempHandler) publishCreatedFileEvent(ctx context.Context, event file.FileUploaded) error {
 	return h.eventBus.Publish(ctx, event) // Publish event object directly
 }

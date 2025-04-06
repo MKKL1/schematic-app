@@ -1,0 +1,21 @@
+syntax = "proto3";
+package proto;
+
+option go_package = "./internal/pkg/genproto";
+
+service ImageService {
+  rpc GetImageSizes(GetImageSizesRequest) returns (GetImageSizesResponse);
+}
+
+message GetImageSizesRequest {
+  string hash = 1;
+}
+
+message GetImageSizesResponse {
+  repeated ImageSize sizes = 1;
+}
+
+message ImageSize {
+  string url = 1;
+  string preset_name = 2;
+}
