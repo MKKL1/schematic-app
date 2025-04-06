@@ -8,7 +8,7 @@ type Type string
 
 const (
 	Image     Type = "image"
-	Schematic Type = "schematic"
+	Schematic Type = "minecraft-schematic"
 	Unknown   Type = "unknown"
 )
 

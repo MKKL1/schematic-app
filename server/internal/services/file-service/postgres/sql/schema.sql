@@ -21,10 +21,3 @@ create table file (
     created_at timestamptz not null default NOW(),
     updated_at timestamptz not null default NOW()
 );
-
-create table image (
-    file_hash text not null references file(hash),
-    image_type text not null, --Gallery/avatar...
-    created_at timestamptz not null default NOW(),
-    primary key(file_hash, image_type)
-);

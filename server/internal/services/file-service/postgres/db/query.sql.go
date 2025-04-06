@@ -27,6 +27,23 @@ func (q *Queries) CreateFile(ctx context.Context, arg CreateFileParams) error {
 	return err
 }
 
+const createImage = `-- name: CreateImage :exec
+
+INSERT INTO image (file_hash, image_type)
+VALUES ($1, $2)
+`
+
+type CreateImageParams struct {
+	FileHash  string
+	ImageType string
+}
+
+// --- Image Queries ---
+func (q *Queries) CreateImage(ctx context.Context, arg CreateImageParams) error {
+	_, err := q.db.Exec(ctx, createImage, arg.FileHash, arg.ImageType)
+	return err
+}
+
 const createTempFile = `-- name: CreateTempFile :exec
 INSERT INTO tmp_file (store_key, file_name, content_type, expires_at)
 VALUES ($1, $2, $3, $4)
@@ -94,6 +111,30 @@ func (q *Queries) GetAndMarkTempFileProcessing(ctx context.Context, storeKey str
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getImageTypesForHash = `-- name: GetImageTypesForHash :many
+SELECT image_type FROM image WHERE file_hash = $1
+`
+
+func (q *Queries) GetImageTypesForHash(ctx context.Context, fileHash string) ([]string, error) {
+	rows, err := q.db.Query(ctx, getImageTypesForHash, fileHash)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var image_type string
+		if err := rows.Scan(&image_type); err != nil {
+			return nil, err
+		}
+		items = append(items, image_type)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getTempFile = `-- name: GetTempFile :one

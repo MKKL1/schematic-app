@@ -12,7 +12,7 @@ type Commands struct {
 	DeleteExpiredFiles command.DeleteExpiredFilesHandler
 	CommitTempFile     command.CommitTempHandler
 	PostCreatedHandler command.PostCreatedHandler // Handles the PostCreated event
-	ProcessImage       command.ProcessImageHandler
+	//ProcessImage       command.ProcessImageHandler
 }
 
 type Queries struct {

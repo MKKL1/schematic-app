@@ -42,6 +42,3 @@ SET status = 'processed',
     final_hash = $2,
     updated_at = NOW()
 WHERE store_key = $1;
-
--- --- Image Queries ---
-

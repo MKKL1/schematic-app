@@ -6,5 +6,7 @@ use (
 	./services/author-service
 	./services/file-service
 	./services/gateway
+	./services/kafka-router
+	./services/image-service
 	./pkg
 )
