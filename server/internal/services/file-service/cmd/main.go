@@ -18,7 +18,10 @@ func main() {
 	defer stop()
 
 	go func() {
-		application := NewApplication(ctx)
+		application, err := NewApplication(ctx)
+		if err != nil {
+			panic(err)
+		}
 
 		server.RunGRPCServer(ctx, ":8005", ports.NewFileGrpcErrorMapper(), func(server *grpc.Server) {
 			srv := ports.NewGrpcServer(application)
@@ -29,7 +32,7 @@ func main() {
 			App: application,
 		}
 		http.HandleFunc("/upload-tmp", httpServer.UploadMultipartHandler)
-		err := http.ListenAndServe(":8006", nil)
+		err = http.ListenAndServe(":8006", nil)
 		if err != nil {
 			return
 		}

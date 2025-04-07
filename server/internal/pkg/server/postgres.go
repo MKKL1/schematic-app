@@ -8,22 +8,28 @@ import (
 )
 
 type PostgresConfig struct {
-	Port     string `mapstructure:"port" validate:"required"`
-	Host     string `mapstructure:"host"`
-	Username string `mapstructure:"username"`
-	Password string `mapstructure:"password"`
-	Database string `mapstructure:"database"`
+	Port     string `koanf:"port"`
+	Host     string `koanf:"host"`
+	Username string `koanf:"username"`
+	Password string `koanf:"password"`
+	Database string `koanf:"database"`
 }
+
+// TODO no reason to pass by pointer
 
 func NewPostgreSQLClient(ctx context.Context, conf *PostgresConfig) (*pgxpool.Pool, error) {
 	connString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s", conf.Username, conf.Password, conf.Host, conf.Port, conf.Database)
+	return NewPostgreSQLClientByUrl(ctx, connString)
+}
+
+func NewPostgreSQLClientByUrl(ctx context.Context, connString string) (*pgxpool.Pool, error) {
 	dbPool, err := pgxpool.New(ctx, connString)
 
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
-				log.Info().Str("port", conf.Port).Msg("shutting down postgres pool")
+				log.Info().Msg("shutting down postgres pool")
 				dbPool.Close()
 				log.Info().Msg("postgres pool shut down")
 				return

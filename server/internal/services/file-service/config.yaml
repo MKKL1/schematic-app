@@ -1,0 +1,21 @@
+kafka:
+  brokers:
+    - "localhost:9092"
+
+database:
+  port: "5432"
+  host: "localhost"
+  username: "root"
+  password: "root"
+  database: "sh_file"
+
+minio:
+  endpoint: "localhost:9000"
+  access_key: "GdD14n1Oxz2U5hfQhdHo"
+  secret_key: "e1Peh4RLq7E4hgDW3GtV8nl4IaZjGrzDuS0WTPaB"
+  use_ssl: false
+  buckets:
+    files: "files"
+    temp: "temp-bucket"
+
+log_level: "debug"
