@@ -5,6 +5,7 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/pkg/genproto"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/ports"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"net/http"
 	"os"
@@ -18,10 +19,7 @@ func main() {
 	defer stop()
 
 	go func() {
-		application, err := NewApplication(ctx)
-		if err != nil {
-			panic(err)
-		}
+		application, _ := NewApplication(ctx)
 
 		server.RunGRPCServer(ctx, ":8005", ports.NewFileGrpcErrorMapper(), func(server *grpc.Server) {
 			srv := ports.NewGrpcServer(application)
@@ -32,7 +30,8 @@ func main() {
 			App: application,
 		}
 		http.HandleFunc("/upload-tmp", httpServer.UploadMultipartHandler)
-		err = http.ListenAndServe(":8006", nil)
+		http.Handle("/metrics", promhttp.Handler())
+		err := http.ListenAndServe(":8006", nil)
 		if err != nil {
 			return
 		}

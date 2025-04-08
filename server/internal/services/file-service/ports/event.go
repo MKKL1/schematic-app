@@ -38,7 +38,7 @@ func NewEventHandlers(app app.Application, handler kafka.CqrsHandler) *EventHand
 }
 
 func (eh *EventHandlers) commitFileCmdHandler(ctx context.Context, cmd *CommitFile) error {
-	_, err := eh.app.Commands.CommitTempFile.Handle(ctx, command.CommitTempParams{
+	_, err := eh.app.Commands.CommitTempFile.Handle(ctx, command.CommitTempCmd{
 		Key:      cmd.Id,
 		Type:     cmd.Type,
 		Metadata: cmd.Metadata,

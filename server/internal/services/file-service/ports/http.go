@@ -40,7 +40,7 @@ func (h HttpServer) UploadMultipartHandler(w http.ResponseWriter, r *http.Reques
 	// Stream the file to your backend.
 	resp, err := h.App.Commands.UploadTempFile.Handle(
 		r.Context(),
-		command.UploadTempFileParams{
+		command.UploadTempFileCmd{
 			Reader:      file,
 			FileName:    fileName,
 			ContentType: contentType,

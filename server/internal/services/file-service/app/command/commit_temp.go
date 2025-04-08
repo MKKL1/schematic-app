@@ -6,13 +6,14 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/metrics"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/domain/file"
 	"github.com/ThreeDotsLabs/watermill/components/cqrs"
 	"github.com/rs/zerolog" // Use zerolog
 	"io"
 )
 
-type CommitTempParams struct {
+type CommitTempCmd struct {
 	Key      string
 	Type     string
 	Metadata map[string]string
@@ -22,7 +23,7 @@ type CommitTempResult struct {
 	Hash string
 }
 
-type CommitTempHandler decorator.CommandHandler[CommitTempParams, CommitTempResult]
+type CommitTempHandler decorator.CommandHandler[CommitTempCmd, CommitTempResult]
 
 type commitTempHandler struct {
 	storageClient file.StorageClient
@@ -31,30 +32,30 @@ type commitTempHandler struct {
 	logger        zerolog.Logger
 }
 
-func NewCommitTempHandler(storageClient file.StorageClient, repo file.Repository, eventBus *cqrs.EventBus, logger zerolog.Logger) CommitTempHandler {
-	return commitTempHandler{storageClient, repo, eventBus, logger}
+func NewCommitTempHandler(storageClient file.StorageClient, repo file.Repository, eventBus *cqrs.EventBus, logger zerolog.Logger, metrics metrics.Client) CommitTempHandler {
+	return decorator.ApplyCommandDecorators[CommitTempCmd, CommitTempResult](
+		commitTempHandler{storageClient, repo, eventBus, logger},
+		logger,
+		metrics,
+	)
 }
 
-func (h commitTempHandler) Handle(ctx context.Context, cmd CommitTempParams) (CommitTempResult, error) {
-	log := h.logger.With().Str("handler", "CommitTempHandler").Str("tempKey", cmd.Key).Logger()
-	log.Info().Msg("Committing temporary file")
+func (h commitTempHandler) Handle(ctx context.Context, cmd CommitTempCmd) (CommitTempResult, error) {
+	log := decorator.AddCmdInfo(cmd, h.logger)
 
 	tempFile, err := h.repo.GetAndMarkTempFileProcessing(ctx, cmd.Key)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get and mark temp file processing")
-		return CommitTempResult{}, fmt.Errorf("failed to get/mark temp file %s: %w", cmd.Key, err)
+		return CommitTempResult{}, fmt.Errorf("mark file processing %s: %w", cmd.Key, err)
 	}
 
 	dstObjName, err := h.computeHash(ctx, tempFile.Key)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to compute hash")
 		_ = h.repo.MarkTempFileFailed(ctx, tempFile.Key, "failed to compute hash") // Mark failed
 		return CommitTempResult{}, fmt.Errorf("failed computing hash for %s: %w", tempFile.Key, err)
 	}
 
 	exists, err := h.repo.FileExists(ctx, dstObjName)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to check if file exists")
 		_ = h.repo.MarkTempFileFailed(ctx, tempFile.Key, "failed to check file existence") // Mark failed
 		return CommitTempResult{}, fmt.Errorf("failed checking existence for hash %s: %w", dstObjName, err)
 	}
@@ -65,7 +66,6 @@ func (h commitTempHandler) Handle(ctx context.Context, cmd CommitTempParams) (Co
 	} else {
 		finalFileHash, err = h.copyToPermanentStorage(ctx, tempFile, dstObjName, log) // Pass logger
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to copy file to permanent storage")
 			_ = h.repo.MarkTempFileFailed(ctx, tempFile.Key, "failed to copy to permanent storage") // Mark failed
 			return CommitTempResult{}, fmt.Errorf("failed copying %s to %s: %w", tempFile.Key, dstObjName, err)
 		}
@@ -100,7 +100,7 @@ func (h commitTempHandler) copyToPermanentStorage(
 	ctx context.Context,
 	tempFile file.TempFile,
 	dstObjName string,
-	log zerolog.Logger, // Use logger
+	log zerolog.Logger,
 ) (string, error) {
 	info, err := h.storageClient.CopyTempToPermanent(ctx, tempFile.Key, dstObjName)
 	if err != nil {
@@ -133,17 +133,17 @@ func (h commitTempHandler) copyToPermanentStorage(
 func (h commitTempHandler) computeHash(ctx context.Context, object string) (string, error) {
 	obj, err := h.storageClient.GetTempObject(ctx, object)
 	if err != nil {
-		return "", fmt.Errorf("failed to get temp object %s for hashing: %w", object, err)
+		return "", fmt.Errorf("get temp object %s for hashing: %w", object, err)
 	}
 	defer obj.Close()
 
 	hasher := sha1.New()
 	if _, err := io.Copy(hasher, obj); err != nil {
-		return "", fmt.Errorf("failed to read temp object %s for hashing: %w", object, err)
+		return "", fmt.Errorf("read temp object %s for hashing: %w", object, err)
 	}
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
 func (h commitTempHandler) publishCreatedFileEvent(ctx context.Context, event file.FileUploaded) error {
-	return h.eventBus.Publish(ctx, event) // Publish event object directly
+	return h.eventBus.Publish(ctx, event)
 }

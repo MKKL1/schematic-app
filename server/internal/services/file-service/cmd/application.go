@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/config"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/kafka"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/metrics"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/app"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/app/command"
@@ -35,10 +36,10 @@ func NewMinioClient(endpoint string, accessKeyID string, secretAccessKey string,
 	return minioClient, nil
 }
 
-func NewApplication(ctx context.Context) (app.Application, error) {
+func NewApplication(ctx context.Context) (app.Application, func()) {
 	consoleWriter := zerolog.ConsoleWriter{
 		Out:        os.Stdout,
-		TimeFormat: time.RFC3339,
+		TimeFormat: time.DateTime,
 	}
 
 	logger := zerolog.New(consoleWriter).With().Timestamp().Logger()
@@ -46,9 +47,18 @@ func NewApplication(ctx context.Context) (app.Application, error) {
 	cfg, err := config.LoadConfig[ApplicationConfig]("config.yaml")
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Loading config failed")
-		return app.Application{}, err
+		panic(err)
 	}
 	logger.Info().Msg("Loaded config from config.yaml")
+
+	//TODO useful but unsafe, maybe allow with command line arg
+	//cfgJSON, err := sonic.MarshalIndent(cfg, "", "  ")
+	//if err != nil {
+	//	//Error here doesn't mean app won't work. So just logging it here
+	//	logger.Error().Err(err).Msg("Failed to marshal config to JSON")
+	//} else {
+	//	logger.Debug().Msgf("Loaded config: %s", string(cfgJSON))
+	//}
 
 	logger.Info().Msg("Starting File Service Application Setup")
 
@@ -63,7 +73,7 @@ func NewApplication(ctx context.Context) (app.Application, error) {
 	}) //TODO Use URL from config
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to connect to PostgreSQL")
-		return app.Application{}, err
+		panic(err)
 	}
 	queries := db.New(dbPool)
 	fileRepo := postgres.NewFilePostgresRepository(queries)
@@ -73,7 +83,7 @@ func NewApplication(ctx context.Context) (app.Application, error) {
 	minioClient, err := NewMinioClient(cfg.Minio.Endpoint, cfg.Minio.AccessKey, cfg.Minio.SecretKey, cfg.Minio.UseSSL)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to initialize MinIO client")
-		return app.Application{}, err
+		panic(err)
 	}
 	// Pass all bucket names
 	storageClient := dMinio.NewMinioStorageClient(minioClient, cfg.Minio.Buckets.Files, cfg.Minio.Buckets.Temp)
@@ -82,15 +92,17 @@ func NewApplication(ctx context.Context) (app.Application, error) {
 
 	// --- CQRS Setup ---
 	logger.Info().Strs("brokers", cfg.Kafka.Brokers).Msg("Setting up Kafka CQRS")
-	cqrsHandler := kafka.NewCqrsHandler(kafka.KafkaConfig{Brokers: cfg.Kafka.Brokers}) // Pass logger
+	cqrsHandler := kafka.NewCqrsHandler(kafka.KafkaConfig{Brokers: cfg.Kafka.Brokers}, logger)
+
+	metricsClient := metrics.NewPrometheusMetrics()
 
 	// --- Application Layer ---
 	application := app.Application{
 		Commands: app.Commands{
-			UploadTempFile:     command.NewUploadTempFileHandler(storageClient, fileRepo, cqrsHandler.EventBus),
-			DeleteExpiredFiles: command.NewDeleteExpiredFilesHandler(storageClient, fileRepo),
-			CommitTempFile:     command.NewCommitTempHandler(storageClient, fileRepo, cqrsHandler.EventBus, logger), // Pass logger
-			PostCreatedHandler: command.NewPostCreatedHandler(cqrsHandler.CommandBus, logger),                       // Pass logger
+			UploadTempFile:     command.NewUploadTempFileHandler(storageClient, fileRepo, cqrsHandler.EventBus, logger, metricsClient, cfg.Upload.TmpExpire),
+			DeleteExpiredFiles: command.NewDeleteExpiredFilesHandler(storageClient, fileRepo, logger, metricsClient),
+			CommitTempFile:     command.NewCommitTempHandler(storageClient, fileRepo, cqrsHandler.EventBus, logger, metricsClient),
+			PostCreatedHandler: command.NewPostCreatedHandler(cqrsHandler.CommandBus, logger),
 		},
 		Queries: app.Queries{
 			// Instantiate image query handler later
@@ -103,17 +115,16 @@ func NewApplication(ctx context.Context) (app.Application, error) {
 	ports.NewEventHandlers(application, cqrsHandler) // Register event/command handlers
 
 	// Create cleanup function
-	//cleanup := func() {
-	//	logger.Info().Msg("Shutting down application components...")
-	//	// Add cleanup for Kafka, DB pool, etc.
-	//	cqrsHandler.Stop()
-	//	dbPool.Close()
-	//	logger.Info().Msg("Cleanup finished.")
-	//}
+	cleanup := func() {
+		logger.Info().Msg("Shutting down application components...")
+		// Add cleanup for Kafka, DB pool, etc.
+		dbPool.Close()
+		logger.Info().Msg("Cleanup finished.")
+	}
 
 	// Run CQRS handler (must be after handlers are registered)
 	logger.Info().Msg("Starting CQRS handler")
 	cqrsHandler.Run(ctx)
 	logger.Info().Msg("Application setup complete")
-	return application, nil
+	return application, cleanup
 }

@@ -69,7 +69,7 @@ func (m StorageClient) GetTempObject(ctx context.Context, tempObject string) (fi
 }
 
 func (m StorageClient) PutTempObject(ctx context.Context, tempObject string, reader io.Reader, contentType string) (file.UploadInfo, error) {
-	info, err := m.minioClient.PutObject(ctx, m.temporaryFileBucket, tempObject, reader, -1, minio.PutObjectOptions{ContentType: contentType})
+	info, err := m.minioClient.PutObject(ctx, m.temporaryFileBucket+"A", tempObject, reader, -1, minio.PutObjectOptions{ContentType: contentType})
 	if err != nil {
 		return file.UploadInfo{}, err
 	}
@@ -84,5 +84,4 @@ func toDomainObject(info minio.UploadInfo) file.UploadInfo {
 	}
 }
 
-// Ensure StorageClient implements both interfaces if needed, or use separate clients
 var _ file.StorageClient = (*StorageClient)(nil)

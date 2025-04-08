@@ -2,34 +2,42 @@ package command
 
 import (
 	"context"
+	"fmt"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/metrics"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/domain/file"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 	"strings"
 )
 
-type DeleteExpiredFilesParams struct {
+type DeleteExpiredFilesCmd struct {
 }
 
-type DeleteExpiredFilesHandler decorator.CommandHandler[DeleteExpiredFilesParams, any]
+type DeleteExpiredFilesHandler decorator.CommandHandler[DeleteExpiredFilesCmd, any]
 
 type deleteExpiredFilesHandler struct {
 	storageClient file.StorageClient
 	repo          file.Repository
+	logger        zerolog.Logger
 }
 
-func NewDeleteExpiredFilesHandler(storageClient file.StorageClient, repo file.Repository) DeleteExpiredFilesHandler {
-	return deleteExpiredFilesHandler{storageClient, repo}
+func NewDeleteExpiredFilesHandler(storageClient file.StorageClient, repo file.Repository, logger zerolog.Logger, metrics metrics.Client) DeleteExpiredFilesHandler {
+	return decorator.ApplyCommandDecorators[DeleteExpiredFilesCmd, any](
+		deleteExpiredFilesHandler{storageClient, repo, logger},
+		logger,
+		metrics,
+	)
 }
 
 func isNotFoundError(err error) bool {
 	return strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "NoSuchKey")
 }
 
-func (d deleteExpiredFilesHandler) Handle(ctx context.Context, cmd DeleteExpiredFilesParams) (any, error) {
+func (d deleteExpiredFilesHandler) Handle(ctx context.Context, cmd DeleteExpiredFilesCmd) (any, error) {
+	logger := decorator.AddCmdInfo(cmd, d.logger)
 	files, err := d.repo.GetExpiredFiles(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting expired files: %w", err)
 	}
 
 	if len(files) == 0 {
@@ -58,11 +66,11 @@ func (d deleteExpiredFilesHandler) Handle(ctx context.Context, cmd DeleteExpired
 
 			// Check if the error indicates the object is already removed.
 			if isNotFoundError(removeErr.Err) {
-				log.Printf("Object %s not found, treating as already removed", removeErr.ObjectName)
+				logger.Info().Str("object_name", removeErr.ObjectName).Msg("Object not found, treating as already removed")
 			} else {
 				// Otherwise, mark the file as not removed.
 				delete(successfulRemovals, removeErr.ObjectName)
-				log.Printf("Failed to remove object '%s': %v", removeErr.ObjectName, removeErr.Err)
+				logger.Error().Err(removeErr.Err).Str("object_name", removeErr.ObjectName).Msg("Failed to remove object, continuing anyway")
 			}
 		}
 	}

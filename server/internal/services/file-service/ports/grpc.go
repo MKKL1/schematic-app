@@ -24,7 +24,7 @@ func NewGrpcServer(app app.Application) *GrpcServer {
 }
 
 func (g GrpcServer) DeleteExpiredFiles(ctx context.Context, _ *emptypb.Empty) (*emptypb.Empty, error) {
-	_, err := g.app.Commands.DeleteExpiredFiles.Handle(ctx, command.DeleteExpiredFilesParams{})
+	_, err := g.app.Commands.DeleteExpiredFiles.Handle(ctx, command.DeleteExpiredFilesCmd{})
 	if err != nil {
 		return nil, err
 	}

@@ -19,3 +19,5 @@ minio:
     temp: "temp-bucket"
 
 log_level: "debug"
+upload:
+  expire_duration: 1h

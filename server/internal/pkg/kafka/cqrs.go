@@ -2,12 +2,13 @@ package kafka
 
 import (
 	"context"
-	"github.com/ThreeDotsLabs/watermill"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/zerowater"
 	"github.com/ThreeDotsLabs/watermill-kafka/v3/pkg/kafka"
 	"github.com/ThreeDotsLabs/watermill/components/cqrs"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"log/slog"
 	"time"
@@ -25,19 +26,22 @@ type CqrsHandler struct {
 	router           *message.Router
 }
 
-func NewCqrsHandler(config KafkaConfig) CqrsHandler {
-	slog.SetLogLoggerLevel(slog.LevelDebug)
+func NewCqrsHandler(config KafkaConfig, zerologger zerolog.Logger) CqrsHandler {
+	//slog.SetLogLoggerLevel(slog.LevelDebug)
+	//
+	//logger := watermill.NewSlogLoggerWithLevelMapping(nil, map[slog.Level]slog.Level{
+	//	slog.LevelInfo: slog.LevelDebug,
+	//})
+	//
+	//watermillLogger := watermill.NewSlogLoggerWithLevelMapping(
+	//	slog.With("watermill", true),
+	//	map[slog.Level]slog.Level{
+	//		slog.LevelInfo: slog.LevelDebug,
+	//	},
+	//)
 
-	logger := watermill.NewSlogLoggerWithLevelMapping(nil, map[slog.Level]slog.Level{
-		slog.LevelInfo: slog.LevelDebug,
-	})
-
-	watermillLogger := watermill.NewSlogLoggerWithLevelMapping(
-		slog.With("watermill", true),
-		map[slog.Level]slog.Level{
-			slog.LevelInfo: slog.LevelDebug,
-		},
-	)
+	logger := zerowater.NewZerologLoggerAdapter(zerologger.With().Str("component", "cqrs-handler").Logger())
+	watermillLogger := zerowater.NewZerologLoggerAdapterMapped(zerologger.With().Str("component", "windmill").Logger())
 
 	cqrsMarshaler := cqrs.JSONMarshaler{
 		NewUUID:      uuid.New().String,
