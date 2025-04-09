@@ -2,6 +2,7 @@ package kafka
 
 import (
 	"context"
+	"fmt"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/zerowater"
 	"github.com/ThreeDotsLabs/watermill-kafka/v3/pkg/kafka"
 	"github.com/ThreeDotsLabs/watermill/components/cqrs"
@@ -9,13 +10,8 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"time"
 )
-
-type KafkaConfig struct {
-	Brokers []string
-}
 
 type CqrsHandler struct {
 	CommandBus       *cqrs.CommandBus
@@ -23,10 +19,16 @@ type CqrsHandler struct {
 	EventBus         *cqrs.EventBus
 	EventProcessor   *cqrs.EventProcessor
 	router           *message.Router
+	logger           zerolog.Logger
 }
 
-func NewCqrsHandler(config KafkaConfig, zerologger zerolog.Logger) CqrsHandler {
-	logger := zerowater.NewZerologLoggerAdapter(zerologger.With().Str("component", "cqrs-handler").Logger())
+type KafkaConfig struct {
+	Brokers []string `koanf:"brokers"`
+}
+
+func NewCqrsHandler(cfg KafkaConfig, zerologger zerolog.Logger) CqrsHandler {
+	compLogger := zerologger.With().Str("component", "cqrs-handler").Logger()
+	logger := zerowater.NewZerologLoggerAdapter(compLogger)
 	watermillLogger := zerowater.NewZerologLoggerAdapterMapped(zerologger.With().Str("component", "windmill").Logger())
 
 	cqrsMarshaler := cqrs.JSONMarshaler{
@@ -40,7 +42,7 @@ func NewCqrsHandler(config KafkaConfig, zerologger zerolog.Logger) CqrsHandler {
 
 	publisher, err := kafka.NewPublisher(
 		kafka.PublisherConfig{
-			Brokers:   config.Brokers,
+			Brokers:   cfg.Brokers,
 			Marshaler: kafkaMarshaler,
 		},
 		watermillLogger,
@@ -106,7 +108,7 @@ func NewCqrsHandler(config KafkaConfig, zerologger zerolog.Logger) CqrsHandler {
 			SubscriberConstructor: func(params cqrs.CommandProcessorSubscriberConstructorParams) (message.Subscriber, error) {
 				return kafka.NewSubscriber(
 					kafka.SubscriberConfig{
-						Brokers:       config.Brokers,
+						Brokers:       cfg.Brokers,
 						ConsumerGroup: params.HandlerName,
 						Unmarshaler:   kafkaMarshaler,
 					},
@@ -130,7 +132,7 @@ func NewCqrsHandler(config KafkaConfig, zerologger zerolog.Logger) CqrsHandler {
 			SubscriberConstructor: func(params cqrs.EventProcessorSubscriberConstructorParams) (message.Subscriber, error) {
 				return kafka.NewSubscriber(
 					kafka.SubscriberConfig{
-						Brokers:       config.Brokers,
+						Brokers:       cfg.Brokers,
 						ConsumerGroup: params.HandlerName,
 						Unmarshaler:   kafkaMarshaler,
 					},
@@ -151,15 +153,25 @@ func NewCqrsHandler(config KafkaConfig, zerologger zerolog.Logger) CqrsHandler {
 		EventBus:         eventBus,
 		EventProcessor:   eventProcessor,
 		router:           router,
+		logger:           compLogger,
 	}
 }
 
-func (h CqrsHandler) Run(ctx context.Context) {
-	go func() {
-		err := h.router.Run(ctx)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Error running router")
-			return
-		}
-	}()
+func (h *CqrsHandler) Run(ctx context.Context) {
+	err := h.router.Run(ctx)
+	if err != nil {
+		h.logger.Fatal().Err(err).Msg("Error running router")
+		return
+	}
+}
+
+func (h *CqrsHandler) Close(ctx context.Context) error {
+	h.logger.Info().Msg("Closing Kafka connections...")
+	err := h.router.Close()
+	if err != nil {
+		return fmt.Errorf("closing Kafka router: %w", err)
+	}
+
+	h.logger.Info().Msg("Kafka connections closed.")
+	return nil
 }

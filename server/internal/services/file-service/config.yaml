@@ -8,6 +8,10 @@ database:
   username: "root"
   password: "root"
   database: "sh_file"
+  retry:
+    attempts: 5
+    initial_wait: 1s
+    max_wait: 15s
 
 minio:
   endpoint: "localhost:9000"
@@ -17,9 +21,13 @@ minio:
   buckets:
     files: "files"
     temp: "temp-bucket"
+  retry:
+    attempts: 5
+    initial_wait: 2s
+    max_wait: 20s
 
 log_level: "debug"
-upload:
+service:
   expire_duration: 1h
 
 server:
@@ -27,3 +35,4 @@ server:
     host: ":8005"
   http:
     host: ":8006"
+    shutdown_timeout: 10s

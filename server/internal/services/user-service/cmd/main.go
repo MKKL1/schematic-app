@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/genproto"
-	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
+	grpc2 "github.com/MKKL1/schematic-app/server/internal/pkg/grpc"
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/ports"
 	"google.golang.org/grpc"
 	"os"
@@ -19,7 +19,7 @@ func main() {
 	go func() {
 		application := NewApplication(ctx)
 
-		server.RunGRPCServer(ctx, ":8001", ports.NewUserGrpcErrorMapper(), func(server *grpc.Server) {
+		grpc2.RunGRPCServer(ctx, ":8001", ports.NewUserGrpcErrorMapper(), func(server *grpc.Server) {
 			srv := ports.NewGrpcServer(application)
 			genproto.RegisterUserServiceServer(server, srv)
 		})
