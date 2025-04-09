@@ -49,7 +49,6 @@ type Repository interface {
 	GetExpiredFiles(ctx context.Context) ([]ExpiredFilesRow, error)
 	DeleteTmpFilesByKey(ctx context.Context, keys []string) error
 	GetAndMarkTempFileProcessing(ctx context.Context, key string) (TempFile, error)
-	MarkTempFileFailed(ctx context.Context, key string, reason string) error
 	MarkTempFileProcessed(ctx context.Context, key string, finalHash string) error
 
 	GetFileByHash(ctx context.Context, hash string) (PermFile, error) //TODO separate

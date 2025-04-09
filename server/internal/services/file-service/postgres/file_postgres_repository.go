@@ -98,14 +98,6 @@ func (f FilePostgresRepository) GetAndMarkTempFileProcessing(ctx context.Context
 	return toDto(tmpFile), nil
 }
 
-func (f FilePostgresRepository) MarkTempFileFailed(ctx context.Context, key string, reason string) error {
-	err := f.queries.MarkTempFileFailed(ctx, key)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (f FilePostgresRepository) MarkTempFileProcessed(ctx context.Context, key string, finalHash string) error {
 	err := f.queries.MarkTempFileProcessed(ctx, db2.MarkTempFileProcessedParams{
 		StoreKey:  key,
@@ -130,3 +122,5 @@ func toDto(model db2.TmpFile) file.TempFile {
 		UpdatedAt:   model.UpdatedAt.Time,
 	}
 }
+
+var _ file.Repository = (*FilePostgresRepository)(nil)

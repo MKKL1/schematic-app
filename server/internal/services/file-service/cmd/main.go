@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/config"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/genproto"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/ports"
@@ -19,9 +21,14 @@ func main() {
 	defer stop()
 
 	go func() {
-		application, _ := NewApplication(ctx)
+		cfg, err := config.LoadConfig[ApplicationConfig]("config.yaml")
+		if err != nil {
+			panic(fmt.Errorf("loading config: %v", err))
+		}
 
-		server.RunGRPCServer(ctx, ":8005", ports.NewFileGrpcErrorMapper(), func(server *grpc.Server) {
+		application, _ := NewApplication(ctx, cfg)
+
+		server.RunGRPCServer(ctx, cfg.Server.Grpc.Host, ports.NewFileGrpcErrorMapper(), func(server *grpc.Server) {
 			srv := ports.NewGrpcServer(application)
 			genproto.RegisterFileServiceServer(server, srv)
 		})
@@ -31,7 +38,7 @@ func main() {
 		}
 		http.HandleFunc("/upload-tmp", httpServer.UploadMultipartHandler)
 		http.Handle("/metrics", promhttp.Handler())
-		err := http.ListenAndServe(":8006", nil)
+		err = http.ListenAndServe(cfg.Server.Http.Host, nil)
 		if err != nil {
 			return
 		}

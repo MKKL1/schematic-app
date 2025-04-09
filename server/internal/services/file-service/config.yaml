@@ -21,3 +21,9 @@ minio:
 log_level: "debug"
 upload:
   expire_duration: 1h
+
+server:
+  grpc:
+    host: ":8005"
+  http:
+    host: ":8006"

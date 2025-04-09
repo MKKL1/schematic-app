@@ -9,6 +9,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
+//TODO it's more of a role for mapper service
+
 // Event payload structure
 type PostCreated struct {
 	Files []PostCreatedFile `json:"files"`

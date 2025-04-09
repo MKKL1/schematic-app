@@ -66,7 +66,7 @@ func (d deleteExpiredFilesHandler) Handle(ctx context.Context, cmd DeleteExpired
 
 			// Check if the error indicates the object is already removed.
 			if isNotFoundError(removeErr.Err) {
-				logger.Info().Str("object_name", removeErr.ObjectName).Msg("Object not found, treating as already removed")
+				logger.Warn().Str("object_name", removeErr.ObjectName).Msg("Object not found, treating as already removed")
 			} else {
 				// Otherwise, mark the file as not removed.
 				delete(successfulRemovals, removeErr.ObjectName)

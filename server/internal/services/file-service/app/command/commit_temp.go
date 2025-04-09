@@ -9,7 +9,7 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/pkg/metrics"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/domain/file"
 	"github.com/ThreeDotsLabs/watermill/components/cqrs"
-	"github.com/rs/zerolog" // Use zerolog
+	"github.com/rs/zerolog"
 	"io"
 )
 
@@ -43,6 +43,9 @@ func NewCommitTempHandler(storageClient file.StorageClient, repo file.Repository
 func (h commitTempHandler) Handle(ctx context.Context, cmd CommitTempCmd) (CommitTempResult, error) {
 	log := decorator.AddCmdInfo(cmd, h.logger)
 
+	//TODO may need to split into individual commands
+
+	//Ensure that file won't be deleted while it's being processed
 	tempFile, err := h.repo.GetAndMarkTempFileProcessing(ctx, cmd.Key)
 	if err != nil {
 		return CommitTempResult{}, fmt.Errorf("mark file processing %s: %w", cmd.Key, err)
@@ -50,25 +53,32 @@ func (h commitTempHandler) Handle(ctx context.Context, cmd CommitTempCmd) (Commi
 
 	dstObjName, err := h.computeHash(ctx, tempFile.Key)
 	if err != nil {
-		_ = h.repo.MarkTempFileFailed(ctx, tempFile.Key, "failed to compute hash") // Mark failed
 		return CommitTempResult{}, fmt.Errorf("failed computing hash for %s: %w", tempFile.Key, err)
 	}
 
+	//Check file type (image/schematic/unknown/others in future...)
+	//Depending on type choose service to perform pre checks for file
+	//Image service: verifies that image doesn't contain any inappropriate content
+	//Schematic service: verifies that schematic has proper structure
+	//Unknown: no operation
+	//All of those services take in hash of file and check if they have already checked those files
+
+	//Check if file already exists in bucket, before saving it
 	exists, err := h.repo.FileExists(ctx, dstObjName)
 	if err != nil {
-		_ = h.repo.MarkTempFileFailed(ctx, tempFile.Key, "failed to check file existence") // Mark failed
 		return CommitTempResult{}, fmt.Errorf("failed checking existence for hash %s: %w", dstObjName, err)
 	}
 
 	var finalFileHash string
 	if exists {
 		finalFileHash = dstObjName
+		log.Trace().Str("hash", cmd.Key).Msg("file already existed")
 	} else {
-		finalFileHash, err = h.copyToPermanentStorage(ctx, tempFile, dstObjName, log) // Pass logger
+		finalFileHash, err = h.copyToPermanentStorage(ctx, tempFile, dstObjName, log)
 		if err != nil {
-			_ = h.repo.MarkTempFileFailed(ctx, tempFile.Key, "failed to copy to permanent storage") // Mark failed
 			return CommitTempResult{}, fmt.Errorf("failed copying %s to %s: %w", tempFile.Key, dstObjName, err)
 		}
+		log.Trace().Str("hash", cmd.Key).Msg("saved new file to permanent storage")
 	}
 
 	err = h.repo.MarkTempFileProcessed(ctx, cmd.Key, finalFileHash)
@@ -88,9 +98,13 @@ func (h commitTempHandler) Handle(ctx context.Context, cmd CommitTempCmd) (Commi
 		Metadata: cmd.Metadata,
 	})
 	if err != nil {
-		// Log non-critical error: Event publishing failed, main operation succeeded.
+		// Critical
 		log.Error().Err(err).Msg("Failed to publish FileUploaded event")
 	}
+
+	//After file is uploaded to bucket, it has to be processed by services again
+	//Image service: generate thumbnails
+	//Schematic service: check content, generate 3d model, render model, pass renders to image service
 
 	return CommitTempResult{Hash: finalFileHash}, nil
 }
@@ -114,8 +128,7 @@ func (h commitTempHandler) copyToPermanentStorage(
 		ContentType: tempFile.ContentType,
 	})
 	if err != nil {
-		log.Error().Err(err).Str("hash", info.Key).Msg("Failed to create file record in database")
-		// If DB insert fails, the file is copied but not recorded. Attempt cleanup.
+		log.Warn().Err(err).Str("hash", info.Key).Msg("Failed to create file record in database, attempting to remove orphaned permanent file")
 		cleanupErr := h.storageClient.RemovePermObject(ctx, dstObjName)
 		if cleanupErr != nil {
 			log.Error().Err(cleanupErr).Str("dstObjName", dstObjName).Msg("Failed to clean up orphaned permanent file after DB error")
@@ -123,10 +136,10 @@ func (h commitTempHandler) copyToPermanentStorage(
 		} else {
 			log.Warn().Str("dstObjName", dstObjName).Msg("Cleaned up orphaned permanent file after DB error")
 		}
-		return "", fmt.Errorf("db create failed after copy: %w", err)
+		return "", fmt.Errorf("create file in repo: %w", err)
 	}
 
-	log.Info().Str("hash", info.Key).Int32("size", int32(info.Size)).Msg("File record created in database")
+	log.Trace().Str("hash", info.Key).Int32("size", int32(info.Size)).Msg("File record created in database")
 	return info.Key, nil
 }
 

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/MKKL1/schematic-app/server/internal/pkg/config"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/kafka"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/metrics"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
@@ -29,48 +28,24 @@ func NewMinioClient(endpoint string, accessKeyID string, secretAccessKey string,
 		return nil, fmt.Errorf("creating minio client: %v", err)
 	}
 	// Add a Ping check
-	_, err = minioClient.ListBuckets(context.Background()) // Basic check
+	_, err = minioClient.ListBuckets(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("minio connection check failed: %w", err)
+		return nil, fmt.Errorf("minio connection check: %w", err)
 	}
 	return minioClient, nil
 }
 
-func NewApplication(ctx context.Context) (app.Application, func()) {
+func NewApplication(ctx context.Context, cfg *ApplicationConfig) (app.Application, func()) {
 	consoleWriter := zerolog.ConsoleWriter{
 		Out:        os.Stdout,
 		TimeFormat: time.DateTime,
 	}
-
 	logger := zerolog.New(consoleWriter).With().Timestamp().Logger()
-
-	cfg, err := config.LoadConfig[ApplicationConfig]("config.yaml")
-	if err != nil {
-		logger.Fatal().Err(err).Msg("Loading config failed")
-		panic(err)
-	}
-	logger.Info().Msg("Loaded config from config.yaml")
-
-	//TODO useful but unsafe, maybe allow with command line arg
-	//cfgJSON, err := sonic.MarshalIndent(cfg, "", "  ")
-	//if err != nil {
-	//	//Error here doesn't mean app won't work. So just logging it here
-	//	logger.Error().Err(err).Msg("Failed to marshal config to JSON")
-	//} else {
-	//	logger.Debug().Msgf("Loaded config: %s", string(cfgJSON))
-	//}
-
 	logger.Info().Msg("Starting File Service Application Setup")
 
 	// --- Database Setup ---
 	logger.Info().Msg("Connecting to PostgreSQL")
-	dbPool, err := server.NewPostgreSQLClient(ctx, &server.PostgresConfig{
-		Port:     "5432",
-		Host:     "localhost",
-		Username: "root",
-		Password: "root",
-		Database: "sh_file",
-	}) //TODO Use URL from config
+	dbPool, err := server.NewPostgreSQLClient(ctx, cfg.Database)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to connect to PostgreSQL")
 		panic(err)
@@ -85,7 +60,7 @@ func NewApplication(ctx context.Context) (app.Application, func()) {
 		logger.Fatal().Err(err).Msg("Failed to initialize MinIO client")
 		panic(err)
 	}
-	// Pass all bucket names
+
 	storageClient := dMinio.NewMinioStorageClient(minioClient, cfg.Minio.Buckets.Files, cfg.Minio.Buckets.Temp)
 	logger.Info().Msg("MinIO client initialized successfully")
 	// TODO: Add bucket existence checks/creation logic here if needed

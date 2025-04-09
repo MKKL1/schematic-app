@@ -26,10 +26,23 @@ type UploadConfig struct {
 	TmpExpire time.Duration `koanf:"expire_duration"`
 }
 
+type ServerConfig struct {
+	Grpc GrpcConfig `koanf:"grpc"`
+	Http HttpConfig `koanf:"http"`
+}
+type GrpcConfig struct {
+	Host string `koanf:"host"`
+}
+
+type HttpConfig struct {
+	Host string `koanf:"host"`
+}
+
 type ApplicationConfig struct {
 	Minio    MinioConfig           `koanf:"minio"`
 	Database server.PostgresConfig `koanf:"database"`
 	Kafka    KafkaConfig           `koanf:"kafka"`
 	LogLevel string                `koanf:"log_level"`
 	Upload   UploadConfig          `koanf:"upload"`
+	Server   ServerConfig          `koanf:"server"`
 }

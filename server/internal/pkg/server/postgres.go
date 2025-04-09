@@ -15,9 +15,7 @@ type PostgresConfig struct {
 	Database string `koanf:"database"`
 }
 
-// TODO no reason to pass by pointer
-
-func NewPostgreSQLClient(ctx context.Context, conf *PostgresConfig) (*pgxpool.Pool, error) {
+func NewPostgreSQLClient(ctx context.Context, conf PostgresConfig) (*pgxpool.Pool, error) {
 	connString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s", conf.Username, conf.Password, conf.Host, conf.Port, conf.Database)
 	return NewPostgreSQLClientByUrl(ctx, connString)
 }

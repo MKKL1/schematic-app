@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"log/slog"
 	"time"
 )
 
@@ -27,19 +26,6 @@ type CqrsHandler struct {
 }
 
 func NewCqrsHandler(config KafkaConfig, zerologger zerolog.Logger) CqrsHandler {
-	//slog.SetLogLoggerLevel(slog.LevelDebug)
-	//
-	//logger := watermill.NewSlogLoggerWithLevelMapping(nil, map[slog.Level]slog.Level{
-	//	slog.LevelInfo: slog.LevelDebug,
-	//})
-	//
-	//watermillLogger := watermill.NewSlogLoggerWithLevelMapping(
-	//	slog.With("watermill", true),
-	//	map[slog.Level]slog.Level{
-	//		slog.LevelInfo: slog.LevelDebug,
-	//	},
-	//)
-
 	logger := zerowater.NewZerologLoggerAdapter(zerologger.With().Str("component", "cqrs-handler").Logger())
 	watermillLogger := zerowater.NewZerologLoggerAdapterMapped(zerologger.With().Str("component", "windmill").Logger())
 
@@ -68,25 +54,26 @@ func NewCqrsHandler(config KafkaConfig, zerologger zerolog.Logger) CqrsHandler {
 		panic(err)
 	}
 
-	router.AddMiddleware(middleware.Recoverer)
-	router.AddMiddleware(func(h message.HandlerFunc) message.HandlerFunc {
-		return func(msg *message.Message) ([]*message.Message, error) {
-			slog.Debug("Received message", "metadata", msg.Metadata)
-			return h(msg)
-		}
-	})
-	router.AddMiddleware(middleware.Retry{
-		MaxRetries:          5,                      // Maximum 5 retry attempts
-		InitialInterval:     500 * time.Millisecond, // First retry after 500ms
-		Multiplier:          2.0,                    // Exponential backoff (doubles each time)
-		MaxInterval:         5 * time.Second,        // Maximum wait time per retry
-		MaxElapsedTime:      30 * time.Second,       // Stop retrying after 30 seconds
-		RandomizationFactor: 0.5,                    // Introduce randomness to avoid retry bursts
-		OnRetryHook: func(retryNum int, delay time.Duration) {
-			log.Debug().Msg("retry hook triggered")
-		},
-		Logger: logger,
-	}.Middleware)
+	retryMiddleware := middleware.Retry{
+		MaxRetries:          5,
+		InitialInterval:     500 * time.Millisecond,
+		Multiplier:          3.0,
+		MaxInterval:         10 * time.Second,
+		MaxElapsedTime:      60 * time.Second,
+		RandomizationFactor: 0.5,
+		Logger:              logger,
+	}
+
+	poisMiddleware, err := middleware.PoisonQueue(publisher, "failed.events")
+	if err != nil {
+		panic(err)
+	}
+	router.AddMiddleware(
+		middleware.Recoverer,
+		poisMiddleware,
+		retryMiddleware.Middleware,
+		middleware.CorrelationID,
+	)
 
 	commandBus, err := cqrs.NewCommandBusWithConfig(publisher, cqrs.CommandBusConfig{
 		GeneratePublishTopic: func(params cqrs.CommandBusGeneratePublishTopicParams) (string, error) {
@@ -157,29 +144,6 @@ func NewCqrsHandler(config KafkaConfig, zerologger zerolog.Logger) CqrsHandler {
 	if err != nil {
 		panic(err)
 	}
-
-	//err = commandProcessor.AddHandlers(
-	//	cqrs.NewCommandHandler("SubscribeHandler", SubscribeHandler{eventBus}.Handle),
-	//	cqrs.NewCommandHandler("UnsubscribeHandler", UnsubscribeHandler{eventBus}.Handle),
-	//	cqrs.NewCommandHandler("UpdateEmailHandler", UpdateEmailHandler{eventBus}.Handle),
-	//)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
-	//activityReadModel := NewActivityTimelineModel()
-	//
-	//// All messages from this group will have one subscription.
-	//// When message arrives, Watermill will match it with the correct handler.
-	//err = eventProcessor.AddHandlersGroup(
-	//	"ActivityTimelineReadModel",
-	//	cqrs.NewGroupEventHandler(activityReadModel.OnSubscribed),
-	//	cqrs.NewGroupEventHandler(activityReadModel.OnUnsubscribed),
-	//	cqrs.NewGroupEventHandler(activityReadModel.OnEmailUpdated),
-	//)
-	//if err != nil {
-	//	panic(err)
-	//}
 
 	return CqrsHandler{
 		CommandBus:       commandBus,
