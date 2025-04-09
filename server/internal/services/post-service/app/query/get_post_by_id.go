@@ -7,7 +7,9 @@ import (
 	"github.com/MKKL1/schematic-app/server/internal/pkg/apperr"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/db"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/metrics"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
+	"github.com/rs/zerolog"
 	"strconv"
 )
 
@@ -21,8 +23,12 @@ type getPostByIdHandler struct {
 	repo post.Repository
 }
 
-func NewGetPostByIdHandler(repo post.Repository) GetPostByIdHandler {
-	return getPostByIdHandler{repo}
+func NewGetPostByIdHandler(repo post.Repository, logger zerolog.Logger, metrics metrics.Client) GetPostByIdHandler {
+	return decorator.ApplyQueryDecorators(
+		getPostByIdHandler{repo},
+		logger,
+		metrics,
+	)
 }
 
 func (h getPostByIdHandler) Handle(ctx context.Context, params GetPostByIdParams) (post.Post, error) {

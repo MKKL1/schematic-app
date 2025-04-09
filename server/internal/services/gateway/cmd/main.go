@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"github.com/MKKL1/schematic-app/server/internal/pkg/client"
 	post2 "github.com/MKKL1/schematic-app/server/internal/pkg/client/post"
+	user2 "github.com/MKKL1/schematic-app/server/internal/pkg/client/user"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
 	"github.com/MKKL1/schematic-app/server/internal/services/gateway/http"
 	"github.com/MKKL1/schematic-app/server/internal/services/gateway/post"
@@ -27,7 +27,7 @@ func main() {
 		})
 		e.Use(http.EchoErrorMiddleware)
 
-		userService := client.NewUsersClient(ctx, ":8001")
+		userService := user2.NewGrpcService(ctx, ":8001")
 		userController := user.NewController(userService)
 		user.RegisterRoutes(e, userController)
 

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/kafka"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/metrics"
 	"github.com/MKKL1/schematic-app/server/internal/services/file-service/app"
@@ -16,7 +15,6 @@ import (
 )
 
 func setupApplication(
-	ctx context.Context,
 	logger zerolog.Logger,
 	cfg *ApplicationConfig,
 	dbPool *pgxpool.Pool,

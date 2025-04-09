@@ -2,8 +2,8 @@ package post
 
 import (
 	"context"
-	"github.com/MKKL1/schematic-app/server/internal/pkg/client"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/genproto"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/grpc"
 )
 
 type Service interface {
@@ -42,7 +42,7 @@ func (p GrpcService) GetPostById(ctx context.Context, id int64) (PostDto, error)
 }
 
 func NewPostClient(ctx context.Context, addr string) Service {
-	conn := client.NewConnection(ctx, addr)
+	conn := grpc.NewClient(ctx, addr)
 
 	service := genproto.NewPostServiceClient(conn)
 	return GrpcService{grpcClient: service}

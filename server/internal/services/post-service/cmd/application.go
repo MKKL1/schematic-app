@@ -1,67 +1,41 @@
 package main
 
 import (
-	"context"
-	"github.com/MKKL1/schematic-app/server/internal/pkg/client"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/client/user"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/kafka"
-	"github.com/MKKL1/schematic-app/server/internal/pkg/server"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/metrics"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/command"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/app/query"
-	"github.com/MKKL1/schematic-app/server/internal/services/post-service/ports"
 	postgres2 "github.com/MKKL1/schematic-app/server/internal/services/post-service/postgres"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/postgres/db"
 	"github.com/bwmarrin/snowflake"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/zerolog"
+	"google.golang.org/grpc"
 )
 
-func NewApplication(ctx context.Context) app.Application {
-	dbPool, err := server.NewPostgreSQLClient(ctx, &server.PostgresConfig{
-		Port:     "5432",
-		Host:     "localhost",
-		Username: "root",
-		Password: "root",
-		Database: "sh_post",
-	})
-	if err != nil {
-		panic(err)
-	}
-
+func setupApplication(logger zerolog.Logger, cfg *ApplicationConfig, dbPool *pgxpool.Pool, cqrsHandler kafka.CqrsHandler, metricsClient metrics.Client, grpcClient *grpc.ClientConn) (app.Application, error) {
 	queries := db.New(dbPool)
 	postRepo := postgres2.NewPostPostgresRepository(queries)
 	categoryRepo := postgres2.NewCategoryPostgresRepository(queries)
 
-	//clientRed := server.NewRedisClient()
-	//TODO Move somewhere else
-	//reuClient, err := rueidisaside.NewClient(rueidisaside.ClientOption{
-	//	ClientBuilder: func(option rueidis.ClientOption) (rueidis.Client, error) {
-	//		return clientRed, nil
-	//	},
-	//	ClientOption: rueidis.ClientOption{},
-	//	ClientTTL:    time.Minute,
-	//})
-	//
-	//postCacheRepo := redis.NewPostCacheRepository(postRepo, reuClient)
-
-	idNode, err := snowflake.NewNode(1)
+	idNode, err := snowflake.NewNode(1) //Not sure where it should be
 	if err != nil {
-		panic(err)
+		return app.Application{}, err
 	}
 
-	userService := client.NewUsersClient(ctx, ":8001")
-	cqrsHandler := kafka.NewCqrsHandler(kafka.KafkaConfig{Brokers: []string{"localhost:9092"}})
+	userService := user.NewGrpcService(grpcClient)
 
 	a := app.Application{
 		Commands: app.Commands{
-			CreatePost:     command.NewCreatePostHandler(postRepo, categoryRepo, idNode, userService, cqrsHandler.EventBus),
-			UpdateFileHash: command.NewUpdateAttachedFilesHandler(postRepo),
+			CreatePost:     command.NewCreatePostHandler(postRepo, categoryRepo, idNode, userService, cqrsHandler.EventBus, logger, metricsClient),
+			UpdateFileHash: command.NewUpdateAttachedFilesHandler(postRepo, logger, metricsClient),
 		},
 		Queries: app.Queries{
-			GetPostById: query.NewGetPostByIdHandler(postRepo),
+			GetPostById: query.NewGetPostByIdHandler(postRepo, logger, metricsClient),
 		},
 	}
 
-	ports.NewEventHandlers(a, cqrsHandler)
-	cqrsHandler.Run(ctx)
-
-	return a
+	return a, nil
 }

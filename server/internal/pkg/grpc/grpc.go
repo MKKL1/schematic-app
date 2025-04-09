@@ -14,7 +14,7 @@ import (
 // Config for gRPC server
 type Config struct {
 	Host string `koanf:"host"`
-	Port string `koanf:"port"` // Optional: can combine with host if preferred
+	Port string `koanf:"port"`
 }
 
 // GetAddr returns the network address string

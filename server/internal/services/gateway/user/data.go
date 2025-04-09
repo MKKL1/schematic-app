@@ -1,7 +1,7 @@
 package user
 
 import (
-	"github.com/MKKL1/schematic-app/server/internal/pkg/client"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/client/user"
 	"strconv"
 )
 
@@ -10,7 +10,7 @@ type Response struct {
 	Name string `json:"name"`
 }
 
-func ToResponse(user *client.User) Response {
+func ToResponse(user *user.User) Response {
 	return Response{
 		ID:   strconv.FormatInt(user.ID, 10),
 		Name: user.Name,

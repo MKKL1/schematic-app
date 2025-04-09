@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/auth"
-	"github.com/MKKL1/schematic-app/server/internal/pkg/client"
+	user2 "github.com/MKKL1/schematic-app/server/internal/pkg/client/user"
 	"github.com/MKKL1/schematic-app/server/internal/services/user-service/domain/user"
 	"github.com/labstack/echo/v4"
 	"net/http"
@@ -22,10 +22,10 @@ func RegisterRoutes(e *echo.Echo, server *Controller) {
 }
 
 type Controller struct {
-	userApp client.UserApplication
+	userApp user2.UserApplication
 }
 
-func NewController(userApp client.UserApplication) *Controller {
+func NewController(userApp user2.UserApplication) *Controller {
 	return &Controller{userApp}
 }
 

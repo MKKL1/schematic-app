@@ -5,15 +5,17 @@ import (
 	"errors"
 	"fmt"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/apperr"
-	"github.com/MKKL1/schematic-app/server/internal/pkg/client"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/client/user"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/db"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/metrics"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/category"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/category/validator"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
 	"github.com/ThreeDotsLabs/watermill/components/cqrs"
 	"github.com/bwmarrin/snowflake"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 )
 
 type CreatePost struct {
@@ -37,21 +39,27 @@ type createPostHandler struct {
 	repo         post.Repository
 	categoryRepo category.Repository
 	idNode       *snowflake.Node
-	userService  client.UserApplication
+	userService  user.Service
 	eventBus     *cqrs.EventBus
+	logger       zerolog.Logger
 }
 
-func NewCreatePostHandler(repo post.Repository, categoryRepo category.Repository, idNode *snowflake.Node, userService client.UserApplication, eventBus *cqrs.EventBus) CreatePostHandler {
-	return createPostHandler{repo, categoryRepo, idNode, userService, eventBus}
+func NewCreatePostHandler(repo post.Repository, categoryRepo category.Repository, idNode *snowflake.Node, userService user.Service, eventBus *cqrs.EventBus, logger zerolog.Logger, metrics metrics.Client) CreatePostHandler {
+	return decorator.ApplyCommandDecorators(
+		createPostHandler{repo, categoryRepo, idNode, userService, eventBus, logger},
+		logger,
+		metrics,
+	)
 }
 
 func (h createPostHandler) Handle(ctx context.Context, params CreatePost) (int64, error) {
+	logger := decorator.AddCmdInfo(params, h.logger)
 	err := h.validateCategories(ctx, params.Categories) //TODO validation should be in domain
 	if err != nil {
 		return 0, fmt.Errorf("validating post categories: %w", err)
 	}
 
-	user, err := h.userService.Query.GetUserBySub(ctx, params.Sub)
+	usr, err := h.userService.GetUserBySub(ctx, params.Sub)
 	if err != nil {
 		return 0, fmt.Errorf("querying user by sub: %w", err)
 	}
@@ -77,7 +85,7 @@ func (h createPostHandler) Handle(ctx context.Context, params CreatePost) (int64
 		Name:        params.Name,
 		Description: params.Description,
 		AuthorID:    params.AuthorID,
-		Owner:       user.ID,
+		Owner:       usr.ID,
 		Categories:  categs,
 		Tags:        params.Tags,
 		Files:       files,
@@ -91,8 +99,8 @@ func (h createPostHandler) Handle(ctx context.Context, params CreatePost) (int64
 	go func() {
 		err = h.publishCreatePostEvent(ctx, newPost)
 		if err != nil {
-			//TODO handle
-			//log or delete created post from database
+			//TODO handle, log or delete created post from database
+			logger.Error().Err(err).Msg("Failed to publish create post event")
 		}
 	}()
 

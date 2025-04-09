@@ -1,9 +1,10 @@
-package client
+package user
 
 import (
 	"context"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/genproto"
 	"github.com/google/uuid"
+	"google.golang.org/grpc"
 )
 
 type User struct {
@@ -29,26 +30,24 @@ func protoToDto(prUser *genproto.User) (*User, error) {
 	}, nil
 }
 
-type UserApplication struct {
-	Command UserCommandService
-	Query   UserQueryService
-}
-
-type UserCommandService interface {
+type Service interface {
 	CreateUser(ctx context.Context, name string, sub uuid.UUID) (int64, error)
-}
-
-type UserQueryService interface {
 	GetUserById(ctx context.Context, id int64) (*User, error)
 	GetUserByName(ctx context.Context, name string) (*User, error)
 	GetUserBySub(ctx context.Context, sub uuid.UUID) (*User, error)
 }
 
-type UserQueryGrpcService struct {
+type GrpcService struct {
 	userServiceClient genproto.UserServiceClient
 }
 
-func (u UserQueryGrpcService) GetUserById(ctx context.Context, id int64) (*User, error) {
+func NewGrpcService(conn *grpc.ClientConn) *GrpcService {
+	return &GrpcService{
+		userServiceClient: genproto.NewUserServiceClient(conn),
+	}
+}
+
+func (u GrpcService) GetUserById(ctx context.Context, id int64) (*User, error) {
 	byId, err := u.userServiceClient.GetUserById(ctx, &genproto.GetUserByIdRequest{
 		Id: id,
 	})
@@ -59,7 +58,7 @@ func (u UserQueryGrpcService) GetUserById(ctx context.Context, id int64) (*User,
 	return protoToDto(byId)
 }
 
-func (u UserQueryGrpcService) GetUserByName(ctx context.Context, name string) (*User, error) {
+func (u GrpcService) GetUserByName(ctx context.Context, name string) (*User, error) {
 	byName, err := u.userServiceClient.GetUserByName(ctx, &genproto.GetUserByNameRequest{
 		Name: name,
 	})
@@ -70,7 +69,7 @@ func (u UserQueryGrpcService) GetUserByName(ctx context.Context, name string) (*
 	return protoToDto(byName)
 }
 
-func (u UserQueryGrpcService) GetUserBySub(ctx context.Context, sub uuid.UUID) (*User, error) {
+func (u GrpcService) GetUserBySub(ctx context.Context, sub uuid.UUID) (*User, error) {
 	subBytes, err := sub.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -86,11 +85,7 @@ func (u UserQueryGrpcService) GetUserBySub(ctx context.Context, sub uuid.UUID) (
 	return protoToDto(bySub)
 }
 
-type UserCommandGrpcService struct {
-	userServiceClient genproto.UserServiceClient
-}
-
-func (u UserCommandGrpcService) CreateUser(ctx context.Context, name string, sub uuid.UUID) (int64, error) {
+func (u GrpcService) CreateUser(ctx context.Context, name string, sub uuid.UUID) (int64, error) {
 	subBytes, err := sub.MarshalBinary()
 	if err != nil {
 		return 0, err
@@ -105,17 +100,4 @@ func (u UserCommandGrpcService) CreateUser(ctx context.Context, name string, sub
 	}
 
 	return newId.Id, nil
-}
-
-func NewUsersClient(ctx context.Context, addr string) UserApplication {
-	conn := NewConnection(ctx, addr)
-
-	service := genproto.NewUserServiceClient(conn)
-	query := UserQueryGrpcService{userServiceClient: service}
-	command := UserCommandGrpcService{userServiceClient: service}
-
-	return UserApplication{
-		Query:   query,
-		Command: command,
-	}
 }

@@ -1,0 +1,16 @@
+database:
+  port: "5432"
+  host: "localhost"
+  username: "root"
+  password: "root"
+  database: "sh_user"
+  retry:
+    attempts: 5
+    initial_wait: 1s
+    max_wait: 15s
+
+log_level: "debug"
+
+server:
+  grpc:
+    host: ":8081"

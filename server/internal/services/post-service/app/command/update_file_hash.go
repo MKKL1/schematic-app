@@ -3,8 +3,10 @@ package command
 import (
 	"context"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/metrics"
 	"github.com/MKKL1/schematic-app/server/internal/services/post-service/domain/post"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 )
 
 type UpdateFileHashCommand struct {
@@ -22,8 +24,12 @@ type updateFileHashHandler struct {
 	repo post.Repository
 }
 
-func NewUpdateAttachedFilesHandler(repo post.Repository) UpdateFileHashHandler {
-	return updateFileHashHandler{repo: repo}
+func NewUpdateAttachedFilesHandler(repo post.Repository, logger zerolog.Logger, metrics metrics.Client) UpdateFileHashHandler {
+	return decorator.ApplyCommandDecorators(
+		updateFileHashHandler{repo: repo},
+		logger,
+		metrics,
+	)
 }
 
 func (u updateFileHashHandler) Handle(ctx context.Context, cmd UpdateFileHashCommand) (any, error) {

@@ -54,7 +54,7 @@ func main() {
 	})
 	metricsClient := metrics.NewPrometheusMetrics()
 
-	application, err := setupApplication(ctx, logger, cfg, dbPool, minioClient, cqrsHandler, metricsClient)
+	application, err := setupApplication(logger, cfg, dbPool, minioClient, cqrsHandler, metricsClient)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to setup application")
 	}
