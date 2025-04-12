@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/metrics"
 	"github.com/MKKL1/schematic-app/server/internal/services/image-service/domain/image"
 	"github.com/ThreeDotsLabs/watermill/components/cqrs"
 	"github.com/rs/zerolog"
@@ -21,8 +22,12 @@ type processUploadedImage struct {
 	logger   zerolog.Logger
 }
 
-func NewProcessUploadedImageHandler(repo image.Repository, eventBus *cqrs.EventBus, logger zerolog.Logger) ProcessUploadedImage {
-	return processUploadedImage{repo, eventBus, logger}
+func NewProcessUploadedImageHandler(repo image.Repository, eventBus *cqrs.EventBus, logger zerolog.Logger, metrics metrics.Client) ProcessUploadedImage {
+	return decorator.ApplyCommandDecorators(
+		processUploadedImage{repo, eventBus, logger},
+		logger,
+		metrics,
+	)
 }
 
 func (p processUploadedImage) Handle(ctx context.Context, cmd ProcessUploadedImageCmd) (any, error) {

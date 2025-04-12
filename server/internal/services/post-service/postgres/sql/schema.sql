@@ -21,6 +21,7 @@ create table gallery_image
     "desc"   text
 );
 
+--Basically a read model of file persisted in file service, since file size and hash never change it is probably good
 create table attached_files
 (
     hash text,

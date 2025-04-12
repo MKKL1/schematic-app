@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/MKKL1/schematic-app/server/internal/pkg/decorator"
+	"github.com/MKKL1/schematic-app/server/internal/pkg/metrics"
 	"github.com/MKKL1/schematic-app/server/internal/services/image-service/domain/image"
 	"github.com/rs/zerolog"
 )
@@ -28,8 +29,12 @@ type getImageHandler struct {
 	logger zerolog.Logger
 }
 
-func NewGetImageHandler(repo image.Repository, urlGen image.SignedImageUrlGenerator, logger zerolog.Logger /*, cfg *SomeConfig */) GetImageSizes {
-	return &getImageHandler{repo, urlGen, logger}
+func NewGetImageHandler(repo image.Repository, urlGen image.SignedImageUrlGenerator, logger zerolog.Logger, metrics metrics.Client) GetImageSizes {
+	return decorator.ApplyQueryDecorators(
+		getImageHandler{repo, urlGen, logger},
+		logger,
+		metrics,
+	)
 }
 
 func (h getImageHandler) Handle(ctx context.Context, query GetImageParams) (GetImageResult, error) {

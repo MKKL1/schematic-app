@@ -18,6 +18,17 @@ type UrlGenerator struct {
 	saltBytes     []byte
 }
 
+type Config struct {
+	MinioBaseURL string `json:"minio_url"`
+	ImgProxyURL  string `json:"url"`
+	KeyHex       string `json:"key"`
+	SaltHex      string `json:"salt"`
+}
+
+func NewUrlGeneratorFromConfig(config Config) *UrlGenerator {
+	return NewUrlGenerator(config.MinioBaseURL, config.ImgProxyURL, config.KeyHex, config.SaltHex)
+}
+
 // NewUrlGenerator has args MinioBasePath e.g., "s3://images", ProxyBaseUrl e.g., "https://imgproxy.example.com"
 func NewUrlGenerator(MinioBasePath string, ProxyBaseUrl string, KeyHex string, SaltHex string) *UrlGenerator {
 	// Decode key and salt from their hex representation.
